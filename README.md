@@ -16,7 +16,7 @@ docker compose up --build
 
 ## 服务器部署
 
-见 [docs/DEPLOY.md](docs/DEPLOY.md)。Postgres 用宿主机已有实例，Redis 由 Compose 启动；Nginx 自行配置。
+见 [docs/DEPLOY.md](docs/DEPLOY.md)。Postgres / Redis 用宿主机实例，Compose 只跑 api、worker、web；Nginx 自行配置（示例端口 8081）。
 
 ```bash
 cp .env.production.example .env.production
