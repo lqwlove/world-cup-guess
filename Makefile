@@ -1,4 +1,7 @@
-.PHONY: start stop status migrate seed build-web install-api install-web test
+.PHONY: start stop status setup migrate seed build-web install-api install-web test
+
+setup:
+	./start.sh setup
 
 start:
 	./start.sh start

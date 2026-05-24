@@ -15,11 +15,10 @@ NEXT_PUBLIC_API_URL=http://公网IP:8081
 CORS_ORIGINS=http://公网IP:8081
 ```
 
-首次需创建 Conda 环境：
+首次创建 Conda 环境（也可由 `start` 自动创建）：
 
 ```bash
-cd services/api
-conda env create -f environment.yml   # 或 conda create -n wcguess python=3.12 && pip install -r requirements.txt
+./start.sh setup
 ```
 
 ## 2. 一键启动

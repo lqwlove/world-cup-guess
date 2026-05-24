@@ -7,6 +7,7 @@
 #   ./start.sh migrate        仅数据库迁移
 #   ./start.sh seed           导入种子数据
 #   ./start.sh build-web      仅构建前端（不启动）
+#   ./start.sh setup          仅创建 Conda 环境并安装依赖
 #
 # 环境变量:
 #   ENV_FILE      默认 .env.production
@@ -39,8 +40,8 @@ load_env() {
   set +a
 }
 
-conda_activate() {
-  if [[ -n "${CONDA_PREFIX:-}" && "${CONDA_DEFAULT_ENV:-}" == "$CONDA_ENV" ]]; then
+conda_init() {
+  if [[ -n "${CONDA_SHLVL:-}" ]]; then
     return 0
   fi
   if [[ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]]; then
@@ -52,10 +53,44 @@ conda_activate() {
   elif [[ -f "/opt/conda/etc/profile.d/conda.sh" ]]; then
     # shellcheck disable=SC1091
     source "/opt/conda/etc/profile.d/conda.sh"
-  else
+  elif command -v conda &>/dev/null; then
     eval "$(conda shell.bash hook)"
+  else
+    echo "[错误] 未找到 conda，请先安装 Miniconda 并确保 conda 在 PATH 中"
+    exit 1
   fi
-  conda activate "$CONDA_ENV"
+}
+
+conda_env_exists() {
+  conda env list | tail -n +2 | awk '{print $1}' | sed 's/^\*//' | grep -Fxq "$CONDA_ENV"
+}
+
+cmd_setup() {
+  conda_init
+  if conda_env_exists; then
+    echo "[Conda] 环境已存在: $CONDA_ENV"
+    conda activate "$CONDA_ENV"
+  else
+    echo "[Conda] 创建环境: $CONDA_ENV (Python 3.12)"
+    conda create -n "$CONDA_ENV" python=3.12 pip -y
+    conda activate "$CONDA_ENV"
+  fi
+  echo "[pip] 安装/更新依赖..."
+  pip install -r "$API_DIR/requirements.txt"
+  echo "[完成] 环境就绪: conda activate $CONDA_ENV"
+}
+
+conda_activate() {
+  if [[ -n "${CONDA_PREFIX:-}" && "${CONDA_DEFAULT_ENV:-}" == "$CONDA_ENV" ]]; then
+    return 0
+  fi
+  conda_init
+  if ! conda_env_exists; then
+    echo "[提示] 未找到 Conda 环境 $CONDA_ENV，自动执行 setup..."
+    cmd_setup
+  else
+    conda activate "$CONDA_ENV"
+  fi
 }
 
 is_running() {
@@ -200,6 +235,7 @@ main() {
     migrate) load_env; cmd_migrate ;;
     seed) cmd_seed ;;
     build-web) load_env; cmd_build_web ;;
+    setup) cmd_setup ;;
     -h | help) usage ;;
     *)
       echo "未知命令: $cmd"
