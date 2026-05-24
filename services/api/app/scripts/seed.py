@@ -103,17 +103,16 @@ async def seed() -> None:
 
 async def _seed_demo_discussion(session) -> None:
     match_id = "wc2026-final"
+    if not await session.get(Match, match_id):
+        return
+
     result = await session.execute(
         select(Discussion).where(Discussion.match_id == match_id)
     )
     if result.scalars().first():
         return
 
-    from uuid import uuid4
-
-    discussion_id = uuid4()
     discussion = Discussion(
-        id=discussion_id,
         match_id=match_id,
         status="completed",
         phase="Consensus",
@@ -123,6 +122,9 @@ async def _seed_demo_discussion(session) -> None:
         finished_at=datetime.utcnow(),
     )
     session.add(discussion)
+    await session.flush()
+
+    discussion_id = discussion.id
 
     demo_messages = [
         ("moderator", "STATEMENT", "Opening the tactical room for Argentina vs Spain.", [], []),
@@ -184,17 +186,6 @@ async def _seed_demo_discussion(session) -> None:
         "unresolved": [],
         "skeptic_ack": "ACK_WITH_RESERVATION",
     }
-    session.add(
-        ConsensusArtifact(
-            match_id=match_id,
-            discussion_id=discussion_id,
-            schema_version="v1",
-            json_data=artifact,
-            strength="strong",
-        )
-    )
-
-    # Default market snapshot for final
     result = await session.execute(
         select(MarketSnapshot).where(MarketSnapshot.match_id == match_id)
     )
@@ -207,6 +198,16 @@ async def _seed_demo_discussion(session) -> None:
                 raw={"mock": True},
             )
         )
+
+    session.add(
+        ConsensusArtifact(
+            match_id=match_id,
+            discussion_id=discussion_id,
+            schema_version="v1",
+            json_data=artifact,
+            strength="strong",
+        )
+    )
 
     await session.commit()
 

@@ -31,7 +31,9 @@ export default async function HomePage({
       </Suspense>
       <div className="mt-6 grid gap-4">
         {matches.length === 0 ? (
-          <p className="text-slate-400">暂无赛程数据，请确认 API 服务已启动。</p>
+          <p className="text-slate-400">
+            暂无赛程数据，请确认 API 服务已启动。
+          </p>
         ) : (
           matches.map((m) => <MatchCard key={m.id} match={m} />)
         )}

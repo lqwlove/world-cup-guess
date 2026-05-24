@@ -40,7 +40,7 @@ export async function getMatch(id: string): Promise<Match> {
 }
 
 export async function getFacts(
-  id: string
+  id: string,
 ): Promise<{ match_id: string; data_version: string; facts: MatchFact[] }> {
   return fetchJson(`/api/matches/${id}/facts`);
 }
@@ -49,7 +49,9 @@ export async function getMarket(id: string): Promise<MarketData> {
   return fetchJson(`/api/matches/${id}/market`);
 }
 
-export async function getConsensus(id: string): Promise<ConsensusArtifact | null> {
+export async function getConsensus(
+  id: string,
+): Promise<ConsensusArtifact | null> {
   try {
     return await fetchJson(`/api/matches/${id}/consensus`);
   } catch {
@@ -59,7 +61,7 @@ export async function getConsensus(id: string): Promise<ConsensusArtifact | null
 
 export async function startDiscussion(
   matchId: string,
-  forceRefresh = false
+  forceRefresh = false,
 ): Promise<Discussion> {
   return fetchJson(`/api/matches/${matchId}/discussions`, {
     method: "POST",
@@ -73,21 +75,29 @@ export async function getDiscussion(id: string): Promise<Discussion> {
 
 export async function getMessages(
   discussionId: string,
-  fromSeq = 0
+  fromSeq = 0,
 ): Promise<DiscussionMessage[]> {
-  return fetchJson(`/api/discussions/${discussionId}/messages?from_seq=${fromSeq}`);
+  return fetchJson(
+    `/api/discussions/${discussionId}/messages?from_seq=${fromSeq}`,
+  );
 }
 
-export async function runDiscussionSync(discussionId: string): Promise<Discussion> {
-  return fetchJson(`/api/discussions/${discussionId}/run-sync`, { method: "POST" });
+export async function runDiscussionSync(
+  discussionId: string,
+): Promise<Discussion> {
+  return fetchJson(`/api/discussions/${discussionId}/run-sync`, {
+    method: "POST",
+  });
 }
 
 export function streamDiscussion(
   discussionId: string,
   onEvent: (data: unknown) => void,
-  onError?: (e: Event) => void
+  onError?: (e: Event) => void,
 ): EventSource {
-  const es = new EventSource(`${API_URL}/api/discussions/${discussionId}/stream`);
+  const es = new EventSource(
+    `${API_URL}/api/discussions/${discussionId}/stream`,
+  );
   es.addEventListener("message", (e) => {
     try {
       onEvent(JSON.parse(e.data));
@@ -102,7 +112,7 @@ export function streamDiscussion(
 export async function submitFeedback(
   matchId: string,
   sessionId: string,
-  vote: "up" | "down"
+  vote: "up" | "down",
 ): Promise<void> {
   await fetchJson("/api/feedback", {
     method: "POST",

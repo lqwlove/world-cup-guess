@@ -190,9 +190,30 @@ cmd_build_web() {
     exit 1
   fi
   echo "[构建] 前端 NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL"
-  npm ci
+  if [[ -f package-lock.json ]]; then
+    npm ci
+  else
+    npm install
+  fi
   npm run build
-  echo "[完成] 前端已构建"
+  if [[ ! -f "$WEB_DIR/.next/BUILD_ID" ]]; then
+    echo "[错误] 前端构建失败，未生成 .next/BUILD_ID"
+    exit 1
+  fi
+  echo "[完成] 前端已构建（含 _next/static，需 npm run start 或 ./start.sh start 提供访问）"
+}
+
+ensure_web_built() {
+  load_env
+  if [[ ! -f "$WEB_DIR/.next/BUILD_ID" ]]; then
+    echo "[提示] 未构建前端，先执行 npm run build ..."
+    cmd_build_web
+    return
+  fi
+  if [[ ! -d "$WEB_DIR/.next/static" ]]; then
+    echo "[提示] 缺少 .next/static，重新构建..."
+    cmd_build_web
+  fi
 }
 
 start_api() {
@@ -230,12 +251,10 @@ start_web() {
     echo "[跳过] web 已在运行 (pid $(cat "$WEB_PID"))"
     return
   fi
+  ensure_web_built
   cd "$WEB_DIR"
-  if [[ ! -d "$WEB_DIR/.next" ]]; then
-    echo "[提示] 未检测到 .next，先执行构建..."
-    cmd_build_web
-  fi
   echo "[启动] web → http://127.0.0.1:3000  日志: $LOG_DIR/web.log"
+  echo "       静态资源由 Next 提供: /_next/static/* （须保持本进程运行，不能只丢静态目录）"
   nohup npm run start -- -H 127.0.0.1 -p 3000 \
     >>"$LOG_DIR/web.log" 2>&1 &
   echo $! >"$WEB_PID"
@@ -272,6 +291,13 @@ cmd_status() {
   check_one "api" "$API_PID" "http://127.0.0.1:8000/health"
   check_one "worker" "$WORKER_PID"
   check_one "web" "$WEB_PID" "http://127.0.0.1:3000"
+  if is_running "$WEB_PID"; then
+    if curl -sf -o /dev/null "http://127.0.0.1:3000/" 2>/dev/null; then
+      echo "  web 首页: 可访问"
+    else
+      echo "  web 首页: 无响应，查看 $LOG_DIR/web.log"
+    fi
+  fi
 }
 
 usage() {
