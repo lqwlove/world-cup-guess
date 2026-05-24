@@ -1,0 +1,24 @@
+[
+  {
+    "match_id": "wc2026-final",
+    "platform": "polymarket",
+    "event_slug": "2026-fifa-world-cup-final-winner",
+    "outcome_map": {
+      "home": "argentina",
+      "draw": "draw",
+      "away": "spain"
+    },
+    "review_status": "approved"
+  },
+  {
+    "match_id": "wc2026-semi-1",
+    "platform": "polymarket",
+    "event_slug": "brazil-vs-france-semifinal",
+    "outcome_map": {
+      "home": "brazil",
+      "draw": "draw",
+      "away": "france"
+    },
+    "review_status": "approved"
+  }
+]

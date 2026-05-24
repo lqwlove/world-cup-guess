@@ -1,0 +1,98 @@
+[
+  {
+    "match_id": "wc2026-final",
+    "fact_type": "recent_form",
+    "evidence_id": "EV-home-form-001",
+    "source": "seed-data",
+    "payload": {
+      "team": "Argentina",
+      "last5": ["W", "W", "D", "W", "W"],
+      "goals_for": 11,
+      "goals_against": 3
+    }
+  },
+  {
+    "match_id": "wc2026-final",
+    "fact_type": "recent_form",
+    "evidence_id": "EV-away-form-001",
+    "source": "seed-data",
+    "payload": {
+      "team": "Spain",
+      "last5": ["W", "D", "W", "W", "L"],
+      "goals_for": 9,
+      "goals_against": 5
+    }
+  },
+  {
+    "match_id": "wc2026-final",
+    "fact_type": "head_to_head",
+    "evidence_id": "EV-h2h-001",
+    "source": "seed-data",
+    "payload": {
+      "meetings": 12,
+      "argentina_wins": 4,
+      "spain_wins": 5,
+      "draws": 3
+    }
+  },
+  {
+    "match_id": "wc2026-final",
+    "fact_type": "key_player",
+    "evidence_id": "EV-player-messi-001",
+    "source": "seed-data",
+    "payload": {
+      "name": "Lionel Messi",
+      "position": "FW",
+      "status": "fit",
+      "team": "Argentina"
+    }
+  },
+  {
+    "match_id": "wc2026-final",
+    "fact_type": "key_player",
+    "evidence_id": "EV-player-yamal-001",
+    "source": "seed-data",
+    "payload": {
+      "name": "Lamine Yamal",
+      "position": "FW",
+      "status": "fit",
+      "team": "Spain"
+    }
+  },
+  {
+    "match_id": "wc2026-final",
+    "fact_type": "technical",
+    "evidence_id": "EV-elo-001",
+    "source": "seed-data",
+    "payload": {
+      "metric": "elo",
+      "home": 2145,
+      "away": 2110,
+      "home_advantage": 45
+    }
+  },
+  {
+    "match_id": "wc2026-semi-1",
+    "fact_type": "recent_form",
+    "evidence_id": "EV-home-form-bra",
+    "source": "seed-data",
+    "payload": {
+      "team": "Brazil",
+      "last5": ["W", "W", "W", "D", "W"],
+      "goals_for": 12,
+      "goals_against": 4
+    }
+  },
+  {
+    "match_id": "wc2026-semi-1",
+    "fact_type": "recent_form",
+    "evidence_id": "EV-away-form-fra",
+    "source": "seed-data",
+    "payload": {
+      "team": "France",
+      "last5": ["W", "L", "W", "W", "W"],
+      "goals_for": 10,
+      "goals_against": 6
+    }
+  }
+]

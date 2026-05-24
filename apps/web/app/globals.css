@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0a1628;
+  --card: #0f2137;
+  --accent: #2d9f6f;
+  --gold: #f5c542;
+}
+
+body {
+  @apply bg-pitch-900 text-slate-100 antialiased min-h-screen;
+}

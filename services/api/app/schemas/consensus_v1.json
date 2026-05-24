@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": [
+    "match_id",
+    "status",
+    "generated_at",
+    "consensus_strength",
+    "plays",
+    "skeptic_ack"
+  ],
+  "properties": {
+    "match_id": { "type": "string" },
+    "status": { "enum": ["CONSENSUS_FINAL", "PARTIAL_CONSENSUS"] },
+    "generated_at": { "type": "string" },
+    "consensus_strength": { "enum": ["strong", "weak", "partial"] },
+    "plays": {
+      "type": "object",
+      "required": ["1x2", "score_top3", "handicap"],
+      "properties": {
+        "1x2": {
+          "type": "object",
+          "required": ["pick", "confidence", "confidence_band"],
+          "properties": {
+            "pick": { "type": "string" },
+            "confidence": { "type": "number" },
+            "confidence_band": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "reasons": { "type": "array", "items": { "type": "string" } },
+            "dissent": { "type": ["string", "null"] }
+          }
+        },
+        "score_top3": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["score", "confidence"],
+            "properties": {
+              "score": { "type": "string" },
+              "confidence": { "type": "number" }
+            }
+          }
+        },
+        "handicap": {
+          "type": "object",
+          "required": ["line", "pick", "confidence", "abstain"],
+          "properties": {
+            "line": { "type": "string" },
+            "pick": { "type": "string" },
+            "confidence": { "type": "number" },
+            "abstain": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "market_edge": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["outcome", "consensus_p", "market_p", "edge"],
+        "properties": {
+          "outcome": { "type": "string" },
+          "consensus_p": { "type": "number" },
+          "market_p": { "type": "number" },
+          "edge": { "type": "number" }
+        }
+      }
+    },
+    "minority_opinions": { "type": "array" },
+    "unresolved": { "type": "array", "items": { "type": "string" } },
+    "skeptic_ack": {
+      "enum": ["ACK", "ACK_WITH_RESERVATION", "PENDING"]
+    }
+  }
+}

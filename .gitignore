@@ -1,0 +1,17 @@
+.env
+.env.local
+.env.production
+node_modules/
+.next/
+__pycache__/
+*.pyc
+.venv/
+services/api/.venv/
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+.DS_Store
+*.log
