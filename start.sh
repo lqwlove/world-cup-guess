@@ -94,17 +94,25 @@ cmd_setup() {
   echo "[完成] 环境就绪: conda activate $CONDA_ENV"
 }
 
-conda_activate() {
-  if [[ "${CONDA_DEFAULT_ENV:-}" == "$CONDA_ENV" ]]; then
-    return 0
-  fi
+ensure_conda_ready() {
   conda_init
   if ! conda env list | tail -n +2 | awk '{print $1}' | sed 's/^\*//' | grep -Fxq "$CONDA_ENV"; then
     echo "[提示] 未找到 Conda 环境 $CONDA_ENV，自动执行 setup..."
     cmd_setup
     return 0
   fi
-  conda activate "$CONDA_ENV"
+  if [[ "${CONDA_DEFAULT_ENV:-}" != "$CONDA_ENV" ]]; then
+    conda activate "$CONDA_ENV"
+  fi
+  cd "$API_DIR"
+  if ! python -c "import alembic" 2>/dev/null; then
+    echo "[pip] 依赖未装全，正在安装 requirements.txt ..."
+    pip install -r "$API_DIR/requirements.txt"
+  fi
+}
+
+conda_activate() {
+  ensure_conda_ready
 }
 
 # 后台进程在独立 bash 里激活环境（避免 nohup 丢失 activate）
@@ -147,16 +155,14 @@ cmd_stop() {
 
 cmd_migrate() {
   load_env
-  conda_activate
-  cd "$API_DIR"
-  echo "[迁移] alembic upgrade head"
-  alembic upgrade head
+  ensure_conda_ready
+  echo "[迁移] python -m alembic upgrade head"
+  python -m alembic upgrade head
 }
 
 cmd_seed() {
   load_env
-  conda_activate
-  cd "$API_DIR"
+  ensure_conda_ready
   echo "[种子] python -m app.scripts.seed"
   python -m app.scripts.seed
 }
@@ -222,6 +228,11 @@ start_web() {
 
 cmd_start() {
   load_env
+  if ! conda_env_exists; then
+    cmd_setup
+  else
+    ensure_conda_ready
+  fi
   cmd_migrate
   start_api
   sleep 1
