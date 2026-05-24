@@ -40,28 +40,43 @@ load_env() {
   set +a
 }
 
-conda_init() {
-  if [[ -n "${CONDA_SHLVL:-}" ]]; then
+CONDA_BASE=""
+
+find_conda_base() {
+  if [[ -n "$CONDA_BASE" ]]; then
+    echo "$CONDA_BASE"
     return 0
   fi
-  if [[ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]]; then
-    # shellcheck disable=SC1091
-    source "$HOME/miniconda3/etc/profile.d/conda.sh"
-  elif [[ -f "$HOME/anaconda3/etc/profile.d/conda.sh" ]]; then
-    # shellcheck disable=SC1091
-    source "$HOME/anaconda3/etc/profile.d/conda.sh"
-  elif [[ -f "/opt/conda/etc/profile.d/conda.sh" ]]; then
-    # shellcheck disable=SC1091
-    source "/opt/conda/etc/profile.d/conda.sh"
-  elif command -v conda &>/dev/null; then
-    eval "$(conda shell.bash hook)"
-  else
-    echo "[错误] 未找到 conda，请先安装 Miniconda 并确保 conda 在 PATH 中"
-    exit 1
+  local base=""
+  if command -v conda &>/dev/null; then
+    base="$(conda info --base 2>/dev/null || true)"
   fi
+  if [[ -z "$base" ]]; then
+    for d in "$HOME/miniconda3" "$HOME/anaconda3" "$HOME/mambaforge" "/opt/conda"; do
+      if [[ -f "$d/etc/profile.d/conda.sh" ]]; then
+        base="$d"
+        break
+      fi
+    done
+  fi
+  if [[ -z "$base" || ! -f "$base/etc/profile.d/conda.sh" ]]; then
+    echo "[错误] 未找到 conda。请确认已安装 Miniconda，或执行: source ~/miniconda3/etc/profile.d/conda.sh" >&2
+    return 1
+  fi
+  CONDA_BASE="$base"
+  echo "$CONDA_BASE"
+}
+
+# 非交互 shell 必须先 source conda.sh，不能依赖 conda init / CONDA_SHLVL
+conda_init() {
+  local base
+  base="$(find_conda_base)" || exit 1
+  # shellcheck disable=SC1091
+  source "$base/etc/profile.d/conda.sh"
 }
 
 conda_env_exists() {
+  conda_init
   conda env list | tail -n +2 | awk '{print $1}' | sed 's/^\*//' | grep -Fxq "$CONDA_ENV"
 }
 
@@ -69,28 +84,36 @@ cmd_setup() {
   conda_init
   if conda_env_exists; then
     echo "[Conda] 环境已存在: $CONDA_ENV"
-    conda activate "$CONDA_ENV"
   else
     echo "[Conda] 创建环境: $CONDA_ENV (Python 3.12)"
     conda create -n "$CONDA_ENV" python=3.12 pip -y
-    conda activate "$CONDA_ENV"
   fi
+  conda activate "$CONDA_ENV"
   echo "[pip] 安装/更新依赖..."
   pip install -r "$API_DIR/requirements.txt"
   echo "[完成] 环境就绪: conda activate $CONDA_ENV"
 }
 
 conda_activate() {
-  if [[ -n "${CONDA_PREFIX:-}" && "${CONDA_DEFAULT_ENV:-}" == "$CONDA_ENV" ]]; then
+  if [[ "${CONDA_DEFAULT_ENV:-}" == "$CONDA_ENV" ]]; then
     return 0
   fi
   conda_init
-  if ! conda_env_exists; then
+  if ! conda env list | tail -n +2 | awk '{print $1}' | sed 's/^\*//' | grep -Fxq "$CONDA_ENV"; then
     echo "[提示] 未找到 Conda 环境 $CONDA_ENV，自动执行 setup..."
     cmd_setup
-  else
-    conda activate "$CONDA_ENV"
+    return 0
   fi
+  conda activate "$CONDA_ENV"
+}
+
+# 后台进程在独立 bash 里激活环境（避免 nohup 丢失 activate）
+conda_bash_cmd() {
+  local inner=$1
+  local base
+  base="$(find_conda_base)" || exit 1
+  printf 'source %q/etc/profile.d/conda.sh && conda activate %q && cd %q && set -a && source %q && set +a && %s' \
+    "$base" "$CONDA_ENV" "$API_DIR" "$ENV_FILE" "$inner"
 }
 
 is_running() {
@@ -156,11 +179,13 @@ start_api() {
     echo "[跳过] api 已在运行 (pid $(cat "$API_PID"))"
     return
   fi
-  conda_activate
-  cd "$API_DIR"
+  if ! conda_env_exists; then
+    cmd_setup
+  fi
   echo "[启动] api → http://127.0.0.1:8000  日志: $LOG_DIR/api.log"
-  nohup uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2 \
-    >>"$LOG_DIR/api.log" 2>&1 &
+  local cmd
+  cmd="$(conda_bash_cmd 'exec uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2')"
+  nohup bash -c "$cmd" >>"$LOG_DIR/api.log" 2>&1 &
   echo $! >"$API_PID"
 }
 
@@ -169,11 +194,13 @@ start_worker() {
     echo "[跳过] worker 已在运行 (pid $(cat "$WORKER_PID"))"
     return
   fi
-  conda_activate
-  cd "$API_DIR"
+  if ! conda_env_exists; then
+    cmd_setup
+  fi
   echo "[启动] worker  日志: $LOG_DIR/worker.log"
-  nohup arq app.workers.settings.WorkerSettings \
-    >>"$LOG_DIR/worker.log" 2>&1 &
+  local cmd
+  cmd="$(conda_bash_cmd 'exec arq app.workers.settings.WorkerSettings')"
+  nohup bash -c "$cmd" >>"$LOG_DIR/worker.log" 2>&1 &
   echo $! >"$WORKER_PID"
 }
 
