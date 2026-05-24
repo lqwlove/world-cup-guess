@@ -6,23 +6,17 @@
 - **API**: FastAPI + SQLModel (`services/api`)
 - **合议引擎**: LangGraph 状态机 (`app/deliberation/graph.py`)
 - **异步**: ARQ + Redis
-- **数据库**: PostgreSQL 16
+- **数据库**: PostgreSQL
+- **运行**: Conda（Python 3.12）+ Node.js；生产见 [DEPLOY.md](./DEPLOY.md)
 
-## 本地启动
+## 本地开发
 
 ```bash
-cp .env.example .env
-make up
+cd services/api && conda activate wcguess && uvicorn app.main:app --reload
+cd apps/web && npm run dev
 ```
 
-- Web: http://localhost:3000
-- API: http://localhost:8000/docs
-
-## 生产部署（腾讯云 CVM）
-
-见 [DEPLOY.md](./DEPLOY.md)。使用 `docker-compose.prod.yml` + `.env.production`，Nginx 在宿主机配置。
-
-## 关键路径
+## 关键 API
 
 | 能力 | 入口 |
 |------|------|
@@ -31,12 +25,7 @@ make up
 | SSE 流 | `GET /api/discussions/{id}/stream` |
 | 共识结果 | `GET /api/matches/{id}/consensus` |
 
-## 合议阶段
-
-Opening → CrossExam → DeepDive → PlaybookSplit → FinalVote → Consensus
-
-`max_rounds=30` 未达成则 `PARTIAL_CONSENSUS`。
-
 ## 环境变量
 
-见根目录 `.env.example`。开发默认 `MOCK_LLM=true`，无需 API Key 即可跑通合议。
+开发：`.env.example`  
+生产：`.env.production.example`

@@ -1,59 +1,60 @@
-# 服务器部署（Docker Compose）
+# 服务器部署（Conda + Nginx）
 
-- **PostgreSQL**：宿主机 `55443`，库 `ai_db`
-- **Redis**：宿主机 `7740`
-- **Docker**：仅跑 `api`、`worker`、`web`（映射本机 3000 / 8000）
-- **Nginx**：HTTP `8081`，自行配置
-
-## 1. 环境变量（`.env.production`）
-
-宿主机本机调试：
-
-```env
-DATABASE_URL=postgresql+psycopg://postgresql:密码@localhost:55443/ai_db
-REDIS_URL=redis://localhost:7740/0
-```
-
-**Docker 容器内**须把 `localhost` 改为 `host.docker.internal`：
-
-```env
-DATABASE_URL=postgresql+asyncpg://postgresql:密码@host.docker.internal:55443/ai_db
-DATABASE_URL_SYNC=postgresql://postgresql:密码@host.docker.internal:55443/ai_db
-REDIS_URL=redis://host.docker.internal:7740/0
-
-NEXT_PUBLIC_API_URL=http://公网IP:8081
-CORS_ORIGINS=http://公网IP:8081
-```
-
-确保 Postgres / Redis 允许 Docker 网段连接；Redis `bind` 需包含可被容器访问的地址。
-
-## 2. 启动
+## 1. 环境变量
 
 ```bash
 cp .env.production.example .env.production
 vim .env.production
-
-docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
 ```
 
-种子数据（可选）：
+```env
+DATABASE_URL=postgresql+asyncpg://postgresql:密码@localhost:55443/ai_db
+DATABASE_URL_SYNC=postgresql://postgresql:密码@localhost:55443/ai_db
+REDIS_URL=redis://localhost:7740/0
+NEXT_PUBLIC_API_URL=http://公网IP:8081
+CORS_ORIGINS=http://公网IP:8081
+```
+
+首次需创建 Conda 环境：
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.production exec api python -m app.scripts.seed
+cd services/api
+conda env create -f environment.yml   # 或 conda create -n wcguess python=3.12 && pip install -r requirements.txt
 ```
+
+## 2. 一键启动
+
+```bash
+chmod +x start.sh
+./start.sh start       # 数据库迁移 + 启动 api / worker / web
+./start.sh status
+./start.sh stop
+./start.sh restart
+./start.sh seed        # 首次导入赛程（可选）
+./start.sh build-web   # 改了 NEXT_PUBLIC_API_URL 后重建前端
+```
+
+- 日志：`logs/api.log`、`logs/worker.log`、`logs/web.log`
+- 进程 pid：`.run/`
+- 默认 Conda 环境名 `wcguess`，可 `CONDA_ENV=xxx ./start.sh start`
+
+## 3. Nginx
+
+[deploy/nginx.example.conf](../deploy/nginx.example.conf) — 对外 **8081**，反代本机 `3000` / `8000`。
+
+## 4. 自检
 
 ```bash
 curl http://127.0.0.1:8000/health
+curl -I http://127.0.0.1:3000
+curl http://127.0.0.1:8081/health
 ```
 
-## 3. 常用命令
+## 5. 更新代码
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.production down
-docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
-docker compose -f docker-compose.prod.yml --env-file .env.production logs -f api worker web
+git pull
+cd services/api && conda activate wcguess && pip install -r requirements.txt
+./start.sh build-web    # 若前端有变
+./start.sh restart
 ```
-
-## 4. Nginx（8081）
-
-见 [deploy/nginx.example.conf](../deploy/nginx.example.conf)。安全组放行 **8081**，勿对公网开放 3000、8000、55443、7740。

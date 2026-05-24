@@ -1,35 +1,28 @@
-.PHONY: up down seed migrate test logs prod-up prod-down prod-seed prod-logs
+.PHONY: start stop status migrate seed build-web install-api install-web test
 
-COMPOSE_PROD = docker compose -f docker-compose.prod.yml --env-file .env.production
+start:
+	./start.sh start
 
-up:
-	cp -n .env.example .env 2>/dev/null || true
-	docker compose up --build -d
+stop:
+	./start.sh stop
 
-down:
-	docker compose down
+status:
+	./start.sh status
 
-seed:
-	docker compose exec api python -m app.scripts.seed
+build-web:
+	./start.sh build-web
+
+install-api:
+	cd services/api && pip install -r requirements.txt
+
+install-web:
+	cd apps/web && npm ci
 
 migrate:
-	docker compose exec api alembic upgrade head
+	cd services/api && alembic upgrade head
+
+seed:
+	cd services/api && python -m app.scripts.seed
 
 test:
 	cd services/api && python -m pytest -q
-
-logs:
-	docker compose logs -f api worker web
-
-prod-up:
-	test -f .env.production || (echo "先执行: cp .env.production.example .env.production" && exit 1)
-	$(COMPOSE_PROD) up -d --build
-
-prod-down:
-	$(COMPOSE_PROD) down
-
-prod-seed:
-	$(COMPOSE_PROD) exec api python -m app.scripts.seed
-
-prod-logs:
-	$(COMPOSE_PROD) logs -f api worker web
