@@ -105,10 +105,25 @@ ensure_conda_ready() {
     conda activate "$CONDA_ENV"
   fi
   cd "$API_DIR"
-  if ! python -c "import alembic" 2>/dev/null; then
+  if ! python -c "import alembic.config" 2>/dev/null; then
     echo "[pip] 依赖未装全，正在安装 requirements.txt ..."
     pip install -r "$API_DIR/requirements.txt"
   fi
+}
+
+# 项目内有 alembic/ 迁移目录，不可用 python -m alembic（会冲突）
+run_alembic() {
+  local alembic_bin
+  alembic_bin="$(command -v alembic || true)"
+  if [[ -z "$alembic_bin" ]]; then
+    pip install alembic
+    alembic_bin="$(command -v alembic)"
+  fi
+  if [[ -z "$alembic_bin" ]]; then
+    echo "[错误] 找不到 alembic 命令，请执行: ./start.sh setup"
+    exit 1
+  fi
+  "$alembic_bin" "$@"
 }
 
 conda_activate() {
@@ -156,8 +171,8 @@ cmd_stop() {
 cmd_migrate() {
   load_env
   ensure_conda_ready
-  echo "[迁移] python -m alembic upgrade head"
-  python -m alembic upgrade head
+  echo "[迁移] alembic upgrade head"
+  run_alembic upgrade head
 }
 
 cmd_seed() {
