@@ -19,6 +19,15 @@ PHASES = [
     "Consensus",
 ]
 
+PHASE_LABELS = {
+    "Opening": "开场陈述",
+    "CrossExam": "交叉质询",
+    "DeepDive": "深度讨论",
+    "PlaybookSplit": "玩法分拆",
+    "FinalVote": "最终表决",
+    "Consensus": "形成共识",
+}
+
 MSG_TYPES = [
     "STATEMENT",
     "CHALLENGE",

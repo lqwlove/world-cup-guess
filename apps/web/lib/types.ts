@@ -11,6 +11,8 @@ export interface Match {
   is_hot: boolean;
   deliberation_status: string;
   data_version?: string;
+  latest_discussion_id?: string | null;
+  deliberation_error?: string | null;
 }
 
 export interface MatchFact {

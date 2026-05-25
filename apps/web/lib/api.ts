@@ -90,6 +90,14 @@ export async function runDiscussionSync(
   });
 }
 
+export async function getLatestDiscussion(matchId: string): Promise<Discussion> {
+  return fetchJson(`/api/matches/${matchId}/discussions/latest`);
+}
+
+export async function retryDiscussion(discussionId: string): Promise<Discussion> {
+  return fetchJson(`/api/discussions/${discussionId}/retry`, { method: "POST" });
+}
+
 export function streamDiscussion(
   discussionId: string,
   onEvent: (data: unknown) => void,
@@ -98,13 +106,16 @@ export function streamDiscussion(
   const es = new EventSource(
     `${API_URL}/api/discussions/${discussionId}/stream`,
   );
-  es.addEventListener("message", (e) => {
+  const handle = (e: MessageEvent) => {
     try {
       onEvent(JSON.parse(e.data));
     } catch {
       onEvent(e.data);
     }
-  });
+  };
+  for (const name of ["message", "status", "consensus", "error", "connected", "ping"]) {
+    es.addEventListener(name, handle);
+  }
   es.onerror = (e) => onError?.(e);
   return es;
 }

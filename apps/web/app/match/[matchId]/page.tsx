@@ -72,6 +72,8 @@ export default async function MatchPage({
             matchId={matchId}
             initialConsensus={consensus}
             deliberationStatus={match.deliberation_status}
+            initialDiscussionId={match.latest_discussion_id}
+            deliberationError={match.deliberation_error}
           />
         )}
         {tab === "data" && (

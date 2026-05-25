@@ -12,9 +12,12 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
 
     anthropic_api_key: str = ""
+    # OpenAI 兼容接口：OpenAI / DeepSeek / 火山引擎方舟 等共用
     openai_api_key: str = ""
-    llm_provider: str = "anthropic"
-    llm_model: str = "claude-sonnet-4-20250514"
+    openai_api_base: str = ""
+    # openai | deepseek | volcengine | anthropic
+    llm_provider: str = "deepseek"
+    llm_model: str = "deepseek-chat"
     mock_llm: bool = True
 
     football_data_api_key: str = ""

@@ -1,12 +1,25 @@
 """LLM adapter with mock mode for development."""
 
 import json
-from typing import Any
+from typing import Any, Optional
 
 from app.config import get_settings
-from app.deliberation.constants import ROLE_LABELS
+from app.deliberation.constants import PHASE_LABELS, ROLE_LABELS
 
 settings = get_settings()
+
+# OpenAI 兼容 API 默认地址（可被 OPENAI_API_BASE 覆盖）
+_OPENAI_COMPAT_BASES: dict[str, str] = {
+    "openai": "https://api.openai.com/v1",
+    "deepseek": "https://api.deepseek.com",
+    "volcengine": "https://ark.cn-beijing.volces.com/api/v3",
+}
+
+_DEFAULT_MODELS: dict[str, str] = {
+    "openai": "gpt-4o",
+    "deepseek": "deepseek-chat",
+    "volcengine": "doubao-pro-32k",
+}
 
 
 async def generate_role_message(
@@ -52,13 +65,13 @@ def _mock_message(
     ev = valid_evidence_ids[0] if valid_evidence_ids else "EV-demo-001"
 
     templates = {
-        "data": ("STATEMENT", f"{home} recent form supports slight edge per {ev}.", [ev]),
-        "squad": ("STATEMENT", f"Key players for {home} vs {away} appear fit.", [ev] if valid_evidence_ids else []),
-        "market": ("STATEMENT", "Market prices home near 48%; watch for drift.", []),
-        "skeptic": ("CHALLENGE", f"@data Counter-attack risk for {away} may be understated.", ["E-001"]),
-        "handicap": ("STATEMENT", "Home -0.5 line looks fair given form.", []),
-        "scoreline": ("STATEMENT", "Top scores cluster 2-1, 1-1, 1-0.", []),
-        "moderator": ("STATEMENT", f"Phase {phase}: proceeding with deliberation.", []),
+        "data": ("STATEMENT", f"{home} 近期状态略占优，依据 {ev}。", [ev]),
+        "squad": ("STATEMENT", f"{home} 对 {away} 关键球员阵容完整。", [ev] if valid_evidence_ids else []),
+        "market": ("STATEMENT", "市场隐含主胜约 48%，需关注临场波动。", []),
+        "skeptic": ("CHALLENGE", f"@data {away} 反击效率可能被低估。", ["E-001"]),
+        "handicap": ("STATEMENT", "主让 0.5 球盘口与近况基本匹配。", []),
+        "scoreline": ("STATEMENT", "比分集中在 2-1、1-1、1-0。", []),
+        "moderator": ("STATEMENT", f"{PHASE_LABELS.get(phase, phase)}：继续推进合议。", []),
     }
 
     if phase == "FinalVote" and role != "moderator":
@@ -74,7 +87,7 @@ def _mock_message(
         return {
             "role": role,
             "msg_type": "CONSENSUS_FINAL",
-            "content": "Consensus document finalized.",
+            "content": "共识结论草案已定稿。",
             "refs": [],
             "evidence_ids": [],
         }
@@ -83,25 +96,25 @@ def _mock_message(
         return {
             "role": role,
             "msg_type": "ACK_WITH_RESERVATION",
-            "content": "Signed with reservation on variance.",
+            "content": "保留意见签署：赛果方差仍偏高。",
             "refs": [],
             "evidence_ids": [],
         }
 
     if phase == "CrossExam" and role == "skeptic":
-        msg_type, content, evs = ("CHALLENGE", f"@data {away} efficiency questioned.", [])
+        msg_type, content, evs = ("CHALLENGE", f"@data 质疑 {away} 进攻转化数据。", [])
         return {"role": role, "msg_type": msg_type, "content": content, "refs": ["E-001"], "evidence_ids": evs}
 
     if phase == "CrossExam" and role == "data":
         return {
             "role": role,
             "msg_type": "REBUTTAL",
-            "content": f"E-001 addressed with {ev}.",
+            "content": f"已回应 E-001，补充依据 {ev}。",
             "refs": ["E-001"],
             "evidence_ids": [ev],
         }
 
-    msg_type, content, evs = templates.get(role, ("STATEMENT", "Noted.", []))
+    msg_type, content, evs = templates.get(role, ("STATEMENT", "收到。", []))
     return {"role": role, "msg_type": msg_type, "content": content, "refs": [], "evidence_ids": evs}
 
 
@@ -113,14 +126,35 @@ def _build_prompt(
     valid_evidence_ids: list[str],
 ) -> str:
     label = ROLE_LABELS.get(role, role)
-    return f"""You are the {label} ({role}) in an AI tactical room.
-Phase: {phase}
-Match: {match_context.get('home_team')} vs {match_context.get('away_team')}
-Valid evidence IDs: {valid_evidence_ids}
-Recent messages: {json.dumps(recent_messages[-5:], ensure_ascii=False)}
-Respond ONLY with JSON: {{"msg_type":"...","content":"...","refs":[],"evidence_ids":[]}}
-Rules: factual STATEMENTs need evidence_ids; CHALLENGE/SUPPORT need refs.
+    phase_zh = PHASE_LABELS.get(phase, phase)
+    home = match_context.get("home_team", "")
+    away = match_context.get("away_team", "")
+    return f"""你是世界杯 AI 战术室中的【{label}】（角色代码 {role}）。
+当前阶段：{phase_zh}（{phase}）
+对阵：{home} vs {away}
+可用证据编号：{valid_evidence_ids}
+最近讨论（JSON）：{json.dumps(recent_messages[-8:], ensure_ascii=False)}
+
+请用简体中文撰写分析，语气专业、简洁，像战术室群聊发言。
+仅输出 JSON，不要 markdown：{{"msg_type":"STATEMENT|CHALLENGE|REBUTTAL|SUPPORT|VOTE|ACK|ACK_WITH_RESERVATION|CONSENSUS_FINAL","content":"中文正文","refs":[],"evidence_ids":[]}}
+规则：
+- STATEMENT 陈述事实时必须填写 evidence_ids（来自可用证据列表）
+- CHALLENGE / REBUTTAL / SUPPORT 须在 refs 中引用论点编号（如 E-001）
+- VOTE 时 content 为 JSON 字符串：{{"pick":"home|draw|away","p_low":0.5,"p_high":0.6}}
+- 禁止英文段落（专有名词如 EV-001 除外）
 """
+
+
+def _openai_compat_base_url() -> Optional[str]:
+    if settings.openai_api_base:
+        return settings.openai_api_base.rstrip("/")
+    return _OPENAI_COMPAT_BASES.get(settings.llm_provider)
+
+
+def _resolve_model() -> str:
+    if settings.llm_model:
+        return settings.llm_model
+    return _DEFAULT_MODELS.get(settings.llm_provider, "gpt-4o")
 
 
 async def _call_llm(prompt: str) -> str:
@@ -132,12 +166,20 @@ async def _call_llm(prompt: str) -> str:
         resp = await llm.ainvoke([HumanMessage(content=prompt)])
         return resp.content
 
-    if settings.openai_api_key:
+    base_url = _openai_compat_base_url()
+    if settings.openai_api_key and base_url:
         from langchain_openai import ChatOpenAI
         from langchain_core.messages import HumanMessage
 
-        llm = ChatOpenAI(model="gpt-4o", api_key=settings.openai_api_key)
+        llm = ChatOpenAI(
+            model=_resolve_model(),
+            api_key=settings.openai_api_key,
+            base_url=base_url,
+        )
         resp = await llm.ainvoke([HumanMessage(content=prompt)])
-        return resp.content
+        return resp.content if isinstance(resp.content, str) else str(resp.content)
 
-    return json.dumps({"msg_type": "STATEMENT", "content": "LLM unavailable.", "refs": [], "evidence_ids": []})
+    return json.dumps(
+        {"msg_type": "STATEMENT", "content": "模型服务暂不可用。", "refs": [], "evidence_ids": []},
+        ensure_ascii=False,
+    )

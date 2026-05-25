@@ -15,7 +15,7 @@ _CN_TZ = ZoneInfo("Asia/Shanghai")
 def _deliberation_status(discussion: Optional[Discussion], artifact: Optional[ConsensusArtifact]) -> str:
     if not discussion:
         return "ready" if artifact else "none"
-    if discussion.status == "running":
+    if discussion.status in ("running", "pending"):
         return "generating"
     if discussion.status == "failed":
         return "failed"
@@ -90,6 +90,8 @@ async def get_match(session: AsyncSession, match_id: str) -> Optional[MatchDetai
         is_hot=m.is_hot,
         data_version=m.data_version,
         deliberation_status=_deliberation_status(disc, art),
+        latest_discussion_id=str(disc.id) if disc else None,
+        deliberation_error=disc.error_reason if disc and disc.status == "failed" else None,
     )
 
 

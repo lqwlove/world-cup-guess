@@ -14,7 +14,13 @@ from app.config import get_settings
 from app.db import get_session
 from app.models.entities import Discussion, Match
 from app.schemas.discussion import DiscussionCreate, DiscussionOut, MessageOut
-from app.services.discussion_service import create_discussion, get_messages, run_deliberation
+from app.services.discussion_service import (
+    clear_discussion_run,
+    create_discussion,
+    get_latest_discussion,
+    get_messages,
+    run_deliberation,
+)
 from app.services.redis_pubsub import channel_name, enqueue_deliberation, get_redis
 from app.workers.settings import WorkerSettings
 
@@ -55,8 +61,13 @@ async def retry_discussion(
     discussion = await session.get(Discussion, discussion_id)
     if not discussion:
         raise HTTPException(404, "Discussion not found")
+    await clear_discussion_run(session, discussion_id)
     discussion.status = "pending"
+    discussion.phase = "Opening"
+    discussion.round = 0
     discussion.error_reason = None
+    discussion.started_at = None
+    discussion.finished_at = None
     await session.commit()
     await enqueue_deliberation(str(discussion.id))
     try:
@@ -65,6 +76,19 @@ async def retry_discussion(
         await redis.close()
     except Exception:
         pass
+    return _to_out(discussion)
+
+
+@router.get("/matches/{match_id}/discussions/latest", response_model=DiscussionOut)
+async def latest_match_discussion(
+    match_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    if not await session.get(Match, match_id):
+        raise HTTPException(404, "Match not found")
+    discussion = await get_latest_discussion(session, match_id)
+    if not discussion:
+        raise HTTPException(404, "No discussion for this match")
     return _to_out(discussion)
 
 

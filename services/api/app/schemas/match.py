@@ -26,6 +26,8 @@ class MatchListOut(BaseModel):
 
 class MatchDetailOut(MatchListOut):
     data_version: str
+    latest_discussion_id: Optional[str] = None
+    deliberation_error: Optional[str] = None
 
 
 class MatchFactOut(BaseModel):

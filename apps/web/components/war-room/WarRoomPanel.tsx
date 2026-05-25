@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getConsensus,
   getDiscussion,
+  getLatestDiscussion,
   getMessages,
+  retryDiscussion,
   runDiscussionSync,
   startDiscussion,
   streamDiscussion,
@@ -13,99 +15,278 @@ import {
 } from "@/lib/api";
 import type { ConsensusArtifact, Discussion, DiscussionMessage } from "@/lib/types";
 import { PhaseProgressBar } from "./PhaseProgressBar";
-import { MessageTimeline } from "./MessageTimeline";
+import { ChatRoom } from "./ChatRoom";
 import { ConsensusCertificate, PlaysRecommendation } from "./ConsensusCertificate";
 import { MarketEdgeTable } from "./MarketEdgeTable";
 import { MinorityOpinions } from "./MinorityOpinions";
 import { ReadModeToggle, type ReadMode } from "./ReadModeToggle";
 import { DisagreementRadar } from "./DisagreementRadar";
+import { MessageTimeline } from "./MessageTimeline";
+
+const TERMINAL = new Set(["completed", "partial", "failed"]);
 
 export function WarRoomPanel({
   matchId,
   initialConsensus,
   deliberationStatus,
+  initialDiscussionId,
+  deliberationError,
 }: {
   matchId: string;
   initialConsensus: ConsensusArtifact | null;
   deliberationStatus: string;
+  initialDiscussionId?: string | null;
+  deliberationError?: string | null;
 }) {
   const [consensus, setConsensus] = useState(initialConsensus);
   const [discussion, setDiscussion] = useState<Discussion | null>(null);
   const [messages, setMessages] = useState<DiscussionMessage[]>([]);
-  const [readMode, setReadMode] = useState<ReadMode>(
-    deliberationStatus === "ready" ? "consensus" : "full"
-  );
+  const [readMode, setReadMode] = useState<ReadMode>("full");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isLive, setIsLive] = useState(false);
+  const [error, setError] = useState<string | null>(deliberationError || null);
   const [feedbackSent, setFeedbackSent] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const esRef = useRef<EventSource | null>(null);
 
   const loadMessages = useCallback(async (discussionId: string, fromSeq = 0) => {
     const msgs = await getMessages(discussionId, fromSeq);
     if (fromSeq > 0) {
-      setMessages((prev) => [...prev, ...msgs.filter((m) => !prev.some((p) => p.seq === m.seq))]);
+      setMessages((prev) => {
+        const seen = new Set(prev.map((p) => p.seq));
+        return [...prev, ...msgs.filter((m) => !seen.has(m.seq))];
+      });
     } else {
       setMessages(msgs);
     }
   }, []);
 
-  const handleStart = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const disc = await startDiscussion(matchId);
+  const stopLive = useCallback(() => {
+    setIsLive(false);
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+    if (esRef.current) {
+      esRef.current.close();
+      esRef.current = null;
+    }
+  }, []);
+
+  const watchDiscussion = useCallback(
+    async (disc: Discussion) => {
       setDiscussion(disc);
-      if (disc.status === "completed") {
-        const c = await getConsensus(matchId);
-        setConsensus(c);
+      if (TERMINAL.has(disc.status)) {
+        stopLive();
+        await loadMessages(disc.id);
+        if (disc.status !== "failed") {
+          const c = await getConsensus(matchId);
+          setConsensus(c);
+        }
         return;
       }
-      // Dev-friendly: run sync if worker unavailable
+
+      setIsLive(true);
+      await loadMessages(disc.id);
+
+      const refresh = async () => {
+        try {
+          await loadMessages(disc.id);
+          const d = await getDiscussion(disc.id);
+          setDiscussion(d);
+          if (TERMINAL.has(d.status)) {
+            stopLive();
+            if (d.status !== "failed") {
+              const c = await getConsensus(matchId);
+              setConsensus(c);
+            } else {
+              setError(d.error_reason || "合议生成失败");
+            }
+          }
+        } catch {
+          /* ignore poll errors */
+        }
+      };
+
+      if (pollRef.current) clearInterval(pollRef.current);
+      pollRef.current = setInterval(refresh, 2000);
+
+      if (esRef.current) esRef.current.close();
+      esRef.current = streamDiscussion(disc.id, async (evt) => {
+        const e = evt as {
+          type?: string;
+          seq?: number;
+          message?: string;
+        };
+        if (e.type === "message" || e.type === "status") {
+          await loadMessages(disc.id);
+          const d = await getDiscussion(disc.id);
+          setDiscussion(d);
+        }
+        if (e.type === "consensus") {
+          const c = await getConsensus(matchId);
+          setConsensus(c);
+        }
+        if (e.type === "error") {
+          setError(e.message || "合议出错");
+          stopLive();
+        }
+      });
+    },
+    [loadMessages, matchId, stopLive],
+  );
+
+  const runDeliberation = useCallback(
+    async (disc: Discussion) => {
+      setError(null);
+      setIsLive(true);
+      setMessages([]);
+      setConsensus(null);
+
       try {
         const updated = await runDiscussionSync(disc.id);
         setDiscussion(updated);
         await loadMessages(disc.id);
+        if (updated.status !== "failed") {
+          const c = await getConsensus(matchId);
+          setConsensus(c);
+        } else {
+          setError(updated.error_reason || "合议生成失败");
+        }
+        stopLive();
+        return;
+      } catch {
+        /* API 进程未跑 sync 时，靠 worker + 轮询/SSE */
+      }
+
+      await watchDiscussion(disc);
+    },
+    [loadMessages, matchId, stopLive, watchDiscussion],
+  );
+
+  const handleStart = async (forceRefresh = false) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const disc = await startDiscussion(matchId, forceRefresh);
+      if (disc.status === "completed" && !forceRefresh) {
+        setDiscussion(disc);
+        await loadMessages(disc.id);
         const c = await getConsensus(matchId);
         setConsensus(c);
-      } catch {
-        const es = streamDiscussion(disc.id, async (evt) => {
-          const e = evt as { type?: string; seq?: number };
-          if (e.type === "message" || e.type === "status") {
-            await loadMessages(disc.id);
-            const d = await getDiscussion(disc.id);
-            setDiscussion(d);
-          }
-          if (e.type === "consensus") {
-            const c = await getConsensus(matchId);
-            setConsensus(c);
-          }
-        });
-        setTimeout(() => es.close(), 120000);
-        await loadMessages(disc.id);
+        return;
       }
+      await runDeliberation(disc);
     } catch (e) {
       setError(e instanceof Error ? e.message : "启动失败");
+      stopLive();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRetry = async () => {
+    if (!discussion?.id) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const disc = await retryDiscussion(discussion.id);
+      await runDeliberation(disc);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "重试失败");
+      stopLive();
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (initialConsensus?.discussion_id) {
-      loadMessages(initialConsensus.discussion_id).catch(() => {});
-    }
-  }, [initialConsensus, loadMessages]);
+    const boot = async () => {
+      try {
+        let disc: Discussion | null = null;
+        if (initialDiscussionId) {
+          try {
+            disc = await getDiscussion(initialDiscussionId);
+          } catch {
+            disc = await getLatestDiscussion(matchId);
+          }
+        } else if (
+          deliberationStatus !== "none" ||
+          initialConsensus?.discussion_id
+        ) {
+          const id = initialConsensus?.discussion_id;
+          if (id) {
+            disc = await getDiscussion(id);
+          } else {
+            try {
+              disc = await getLatestDiscussion(matchId);
+            } catch {
+              disc = null;
+            }
+          }
+        }
+        if (!disc) return;
+        setDiscussion(disc);
+        await loadMessages(disc.id);
+        if (disc.status === "running" || disc.status === "pending") {
+          await watchDiscussion(disc);
+        }
+      } catch {
+        /* no prior discussion */
+      }
+    };
+    boot();
+    return () => stopLive();
+  }, [
+    initialDiscussionId,
+    initialConsensus?.discussion_id,
+    deliberationStatus,
+    loadMessages,
+    matchId,
+    stopLive,
+    watchDiscussion,
+  ]);
 
   const artifact = consensus?.artifact;
+  const showChat =
+    isLive || messages.length > 0 || discussion?.status === "running" || discussion?.status === "pending";
+  const canRetry =
+    deliberationStatus === "failed" ||
+    discussion?.status === "failed" ||
+    deliberationStatus === "partial";
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-bold">AI 战术室合议</h2>
-        <span className="text-xs text-slate-500">多角色 AI 讨论，非真人聊天</span>
+        <span className="text-xs text-slate-500">多角色 AI 群聊合议，非真人对话</span>
       </div>
 
       {discussion && (
         <PhaseProgressBar phase={discussion.phase} round={discussion.round} />
+      )}
+
+      {showChat && (
+        <div className="mb-4">
+          <ChatRoom messages={messages} isLive={isLive} />
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-800/60 bg-red-950/30 px-4 py-3 text-sm text-red-300">
+          <p className="font-medium">合议未成功</p>
+          <p className="mt-1 text-red-200/80">{error}</p>
+          {discussion && (
+            <button
+              type="button"
+              onClick={handleRetry}
+              disabled={loading}
+              className="mt-3 rounded-lg bg-red-600 px-4 py-1.5 text-sm text-white hover:bg-red-500 disabled:opacity-50"
+            >
+              {loading ? "重新生成中…" : "重新生成合议"}
+            </button>
+          )}
+        </div>
       )}
 
       {artifact && (
@@ -117,37 +298,50 @@ export function WarRoomPanel({
         </>
       )}
 
-      {!artifact && deliberationStatus === "none" && (
+      {deliberationStatus === "none" && !discussion && !loading && (
         <div className="rounded-xl border border-dashed border-pitch-600 p-6 text-center">
           <p className="mb-2 text-slate-300">开始战术室合议</p>
-          <p className="mb-4 text-sm text-slate-500">预计耗时约 10–30 分钟（视讨论深度而定）</p>
+          <p className="mb-4 text-sm text-slate-500">
+            预计 10–30 分钟；下方群聊区将实时显示各角色中文讨论
+          </p>
           <button
             type="button"
-            onClick={handleStart}
+            onClick={() => handleStart(false)}
             disabled={loading}
             className="rounded-lg bg-pitch-500 px-6 py-2 font-medium text-white hover:bg-pitch-400 disabled:opacity-50"
           >
-            {loading ? "合议进行中…" : "开始战术室合议"}
+            {loading ? "启动中…" : "开始战术室合议"}
           </button>
         </div>
       )}
 
-      {deliberationStatus === "ready" && !discussion && (
+      {(deliberationStatus === "ready" || deliberationStatus === "partial") && !isLive && (
         <button
           type="button"
-          onClick={handleStart}
-          className="mb-4 text-sm text-pitch-400 underline"
+          onClick={() => handleStart(true)}
+          disabled={loading}
+          className="mb-4 text-sm text-pitch-400 underline hover:text-pitch-300"
         >
-          重新生成合议
+          {loading ? "生成中…" : "重新生成合议（强制刷新）"}
         </button>
       )}
 
-      {error && <p className="mb-2 text-sm text-red-400">{error}</p>}
+      {canRetry && !error && discussion && (
+        <button
+          type="button"
+          onClick={handleRetry}
+          disabled={loading}
+          className="mb-4 text-sm text-pitch-400 underline"
+        >
+          重新生成
+        </button>
+      )}
 
-      {messages.length > 0 && (
+      {messages.length > 0 && !isLive && (
         <>
           <DisagreementRadar messages={messages} />
           <ReadModeToggle mode={readMode} onChange={setReadMode} />
+          <p className="mb-2 text-xs text-slate-500">按阶段折叠查看</p>
           <MessageTimeline messages={messages} readMode={readMode} />
         </>
       )}

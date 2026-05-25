@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID
 
-from sqlalchemy import desc, select
+from sqlalchemy import delete, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -75,6 +75,70 @@ async def create_discussion(
     return discussion
 
 
+async def get_latest_discussion(
+    session: AsyncSession, match_id: str
+) -> Optional[Discussion]:
+    result = await session.execute(
+        select(Discussion)
+        .where(Discussion.match_id == match_id)
+        .order_by(desc(Discussion.started_at), desc(Discussion.id))
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
+
+
+async def clear_discussion_run(session: AsyncSession, discussion_id: UUID) -> None:
+    """重试前清空该场合议消息与共识产物。"""
+    await session.execute(
+        delete(DiscussionMessage).where(DiscussionMessage.discussion_id == discussion_id)
+    )
+    await session.execute(
+        delete(ConsensusArtifact).where(ConsensusArtifact.discussion_id == discussion_id)
+    )
+
+
+async def append_message(
+    session: AsyncSession,
+    discussion_id: UUID,
+    msg: dict[str, Any],
+) -> DiscussionMessage:
+    result = await session.execute(
+        select(DiscussionMessage)
+        .where(DiscussionMessage.discussion_id == discussion_id)
+        .order_by(desc(DiscussionMessage.seq))
+        .limit(1)
+    )
+    last = result.scalar_one_or_none()
+    seq = (last.seq if last else 0) + 1
+    db_msg = DiscussionMessage(
+        discussion_id=discussion_id,
+        seq=seq,
+        role=msg.get("role", "unknown"),
+        msg_type=msg.get("msg_type", "STATEMENT"),
+        content=msg.get("content", ""),
+        refs=msg.get("refs", []),
+        evidence_ids=msg.get("evidence_ids", []),
+        phase=msg.get("phase", ""),
+    )
+    session.add(db_msg)
+    await session.commit()
+    await session.refresh(db_msg)
+    await publish_discussion_event(
+        str(discussion_id),
+        {
+            "type": "message",
+            "seq": seq,
+            "role": db_msg.role,
+            "msg_type": db_msg.msg_type,
+            "content": db_msg.content,
+            "refs": db_msg.refs,
+            "evidence_ids": db_msg.evidence_ids,
+            "phase": db_msg.phase,
+        },
+    )
+    return db_msg
+
+
 async def load_facts(session: AsyncSession, match_id: str) -> list[dict[str, Any]]:
     result = await session.execute(select(MatchFact).where(MatchFact.match_id == match_id))
     facts = result.scalars().all()
@@ -132,54 +196,37 @@ async def run_deliberation(session: AsyncSession, discussion_id: UUID) -> None:
 
     try:
         graph = get_graph()
-        final_state = await graph.ainvoke(initial_state)
+        final_state: dict[str, Any] = dict(initial_state)
+        persisted = 0
 
-        seq = 0
-        result = await session.execute(
-            select(DiscussionMessage)
-            .where(DiscussionMessage.discussion_id == discussion_id)
-            .order_by(desc(DiscussionMessage.seq))
-            .limit(1)
-        )
-        last = result.scalar_one_or_none()
-        seq = (last.seq if last else 0)
-
-        for msg in final_state.get("messages", []):
-            seq += 1
-            db_msg = DiscussionMessage(
-                discussion_id=discussion_id,
-                seq=seq,
-                role=msg.get("role", "unknown"),
-                msg_type=msg.get("msg_type", "STATEMENT"),
-                content=msg.get("content", ""),
-                refs=msg.get("refs", []),
-                evidence_ids=msg.get("evidence_ids", []),
-                phase=msg.get("phase", ""),
-            )
-            session.add(db_msg)
-            await session.commit()
+        async for state in graph.astream(initial_state, stream_mode="values"):
+            final_state = state
+            discussion.phase = state.get("phase", discussion.phase)
+            discussion.round = state.get("round", discussion.round)
+            msgs = state.get("messages", [])
+            while persisted < len(msgs):
+                await append_message(session, discussion_id, msgs[persisted])
+                persisted += 1
             await publish_discussion_event(
                 str(discussion_id),
                 {
-                    "type": "message",
-                    "seq": seq,
-                    "role": db_msg.role,
-                    "msg_type": db_msg.msg_type,
-                    "content": db_msg.content,
-                    "refs": db_msg.refs,
-                    "evidence_ids": db_msg.evidence_ids,
-                    "phase": db_msg.phase,
+                    "type": "status",
+                    "status": "running",
+                    "phase": discussion.phase,
+                    "round": discussion.round,
                 },
             )
 
         artifact = final_state.get("final_artifact")
         status = final_state.get("status", "PARTIAL_CONSENSUS")
 
+        failed_validation = False
         if artifact:
             ok, err = validate_consensus_artifact(artifact)
             if not ok:
+                failed_validation = True
                 discussion.status = "failed"
-                discussion.error_reason = f"Schema validation failed: {err}"
+                discussion.error_reason = f"共识 Schema 校验失败: {err}"
                 artifact["status"] = "PARTIAL_CONSENSUS"
                 artifact["consensus_strength"] = "partial"
                 status = "PARTIAL_CONSENSUS"
@@ -195,7 +242,8 @@ async def run_deliberation(session: AsyncSession, discussion_id: UUID) -> None:
                 )
             )
 
-        discussion.status = "completed" if status == "CONSENSUS_FINAL" else "partial"
+        if not failed_validation:
+            discussion.status = "completed" if status == "CONSENSUS_FINAL" else "partial"
         discussion.phase = final_state.get("phase", "Consensus")
         discussion.round = final_state.get("round", 0)
         discussion.finished_at = datetime.utcnow()

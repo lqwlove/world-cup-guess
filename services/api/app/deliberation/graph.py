@@ -140,7 +140,7 @@ async def _deep_dive_node(state: DeliberationState) -> DeliberationState:
         digest = {
             "role": "moderator",
             "msg_type": "THREAD_DIGEST",
-            "content": f"Round {state.get('round')} digest: core debate on form vs counter.",
+            "content": f"第 {state.get('round')} 轮摘要：近况优势与反击风险仍是分歧焦点。",
             "refs": [],
             "evidence_ids": [],
             "phase": "DeepDive",
@@ -318,7 +318,7 @@ def _build_artifact(state: DeliberationState, messages: list[dict]) -> dict[str,
         },
         "market_edge": market_edge,
         "minority_opinions": [
-            {"role": "skeptic", "summary": "Counter-attack variance remains underpriced."}
+            {"role": "skeptic", "summary": "反击方差与冷门概率仍可能被低估。"}
         ],
         "unresolved": state.get("unresolved", []),
         "skeptic_ack": state.get("skeptic_ack", "ACK_WITH_RESERVATION"),
@@ -340,7 +340,7 @@ def _apply_message(
         if result.ok:
             break
         retries += 1
-        msg = {**msg, "msg_type": "REVISE", "content": f"(revised) {msg.get('content', '')}"}
+        msg = {**msg, "msg_type": "REVISE", "content": f"（修订）{msg.get('content', '')}"}
 
     if msg.get("msg_type") == "STATEMENT" and msg.get("content"):
         claim_idx += 1

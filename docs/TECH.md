@@ -29,3 +29,15 @@ cd apps/web && npm run dev
 
 开发：`.env.example`  
 生产：`.env.production.example`
+
+### 大模型（OpenAI 兼容）
+
+| 变量 | 说明 |
+|------|------|
+| `MOCK_LLM` | `true` 时用本地模板，不调 API |
+| `LLM_PROVIDER` | `deepseek` / `volcengine` / `openai` / `anthropic` |
+| `LLM_MODEL` | 模型名；火山方舟填**推理接入点 ID**（如 `ep-xxx`） |
+| `OPENAI_API_KEY` | DeepSeek / 火山 / OpenAI 共用 |
+| `OPENAI_API_BASE` | 可选，覆盖默认 API 地址 |
+
+DeepSeek 与火山引擎均走 `langchain-openai` + 自定义 `base_url`，无需改业务代码。
