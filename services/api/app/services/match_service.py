@@ -1,11 +1,15 @@
-from datetime import date, datetime
+from datetime import date, datetime, time, timezone
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.entities import ConsensusArtifact, Discussion, Match
 from app.schemas.match import MatchDetailOut, MatchListOut
+
+# 日期筛选按北京时间自然日，再换算为 DB 中的 naive UTC
+_CN_TZ = ZoneInfo("Asia/Shanghai")
 
 
 def _deliberation_status(discussion: Optional[Discussion], artifact: Optional[ConsensusArtifact]) -> str:
@@ -29,15 +33,18 @@ async def list_matches(
     stage: Optional[str] = None,
     group_code: Optional[str] = None,
 ) -> list[MatchListOut]:
-    stmt = select(Match).order_by(Match.kickoff_at)
+    # 仅按开球时间正序，不按 is_hot 置顶
+    stmt = select(Match).order_by(Match.kickoff_at.asc())
     if stage:
         stmt = stmt.where(Match.stage == stage)
     if group_code:
         stmt = stmt.where(Match.group_code == group_code)
     if date_filter:
         d = date.fromisoformat(date_filter)
-        start = datetime.combine(d, datetime.min.time())
-        end = datetime.combine(d, datetime.max.time())
+        start_cn = datetime.combine(d, time.min, tzinfo=_CN_TZ)
+        end_cn = datetime.combine(d, time.max, tzinfo=_CN_TZ)
+        start = start_cn.astimezone(timezone.utc).replace(tzinfo=None)
+        end = end_cn.astimezone(timezone.utc).replace(tzinfo=None)
         stmt = stmt.where(Match.kickoff_at >= start, Match.kickoff_at <= end)
 
     result = await session.execute(stmt)
@@ -61,8 +68,6 @@ async def list_matches(
                 deliberation_status=_deliberation_status(disc, art),
             )
         )
-    # Hot matches first, then kickoff
-    out.sort(key=lambda x: (not x.is_hot, x.kickoff_at))
     return out
 
 

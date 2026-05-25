@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Match } from "@/lib/types";
+import { formatKickoff } from "@/lib/formatDateTime";
 import { stageLabel } from "@/lib/stageLabels";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -19,12 +20,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function MatchCard({ match }: { match: Match }) {
-  const kickoff = new Date(match.kickoff_at).toLocaleString("zh-CN", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const kickoff = formatKickoff(match.kickoff_at);
 
   return (
     <Link
@@ -44,7 +40,7 @@ export function MatchCard({ match }: { match: Match }) {
             {match.away_team}
           </p>
           <p className="mt-1 text-sm text-slate-400">
-            {kickoff} · {stageLabel(match.stage)}
+            {kickoff} 北京时间 · {stageLabel(match.stage)}
             {match.group_code ? ` · 小组 ${match.group_code}` : ""}
           </p>
         </div>

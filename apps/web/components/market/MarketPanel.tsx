@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/formatDateTime";
 import type { MarketData } from "@/lib/types";
 
 const OUTCOME_LABELS: Record<string, string> = {
@@ -39,7 +40,7 @@ export function MarketPanel({ market }: { market: MarketData }) {
       </div>
       {market.captured_at && (
         <p className="mt-2 text-xs text-slate-500">
-          更新于 {new Date(market.captured_at).toLocaleString("zh-CN")}
+          更新于 {formatDateTime(market.captured_at)} 北京时间
         </p>
       )}
     </div>

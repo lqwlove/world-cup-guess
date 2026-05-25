@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/formatDateTime";
 import type { ConsensusData } from "@/lib/types";
 
 const PICK_LABELS: Record<string, string> = {
@@ -27,7 +28,7 @@ export function ConsensusCertificate({ data }: { data: ConsensusData }) {
         </span>
       </div>
       <p className="text-xs text-slate-400">
-        {data.status} · {new Date(data.generated_at).toLocaleString("zh-CN")} · {ackLabel}
+        {data.status} · {formatDateTime(data.generated_at)} 北京时间 · {ackLabel}
       </p>
       {data.unresolved?.length > 0 && (
         <div className="mt-2 rounded bg-orange-500/10 p-2 text-xs text-orange-300">

@@ -1,7 +1,9 @@
 from datetime import datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
+
+from app.schemas.serializers import serialize_utc_datetime
 
 
 class MatchListOut(BaseModel):
@@ -17,6 +19,10 @@ class MatchListOut(BaseModel):
     is_hot: bool = False
     deliberation_status: str = "none"  # none | generating | ready | partial | failed
 
+    @field_serializer("kickoff_at")
+    def _kickoff_utc(self, value: datetime) -> str:
+        return serialize_utc_datetime(value)
+
 
 class MatchDetailOut(MatchListOut):
     data_version: str
@@ -28,6 +34,10 @@ class MatchFactOut(BaseModel):
     evidence_id: str
     source: str
     updated_at: datetime
+
+    @field_serializer("updated_at")
+    def _updated_utc(self, value: datetime) -> str:
+        return serialize_utc_datetime(value)
 
 
 class FactsBundleOut(BaseModel):
@@ -49,6 +59,10 @@ class MarketSnapshotOut(BaseModel):
     probabilities: dict[str, float]
     captured_at: datetime
     mapping: Optional[MarketMappingOut] = None
+
+    @field_serializer("captured_at")
+    def _captured_utc(self, value: datetime) -> str:
+        return serialize_utc_datetime(value)
 
 
 class MatchFilters(BaseModel):

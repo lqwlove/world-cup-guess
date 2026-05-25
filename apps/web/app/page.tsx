@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { ScheduleFilters } from "@/components/schedule/ScheduleFilters";
 import { MatchCard } from "@/components/schedule/MatchCard";
 import { getMatches } from "@/lib/api";
+import { parseUtc } from "@/lib/formatDateTime";
 
 export default async function HomePage({
   searchParams,
@@ -19,6 +20,10 @@ export default async function HomePage({
   } catch {
     matches = [];
   }
+
+  matches = [...matches].sort(
+    (a, b) => parseUtc(a.kickoff_at).getTime() - parseUtc(b.kickoff_at).getTime(),
+  );
 
   return (
     <div>
