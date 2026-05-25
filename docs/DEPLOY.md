@@ -29,7 +29,8 @@ chmod +x start.sh
 ./start.sh status
 ./start.sh stop
 ./start.sh restart
-./start.sh seed        # 首次导入赛程（可选）
+./start.sh import-matches  # 从 FIFA 官网生成中文赛程 JSON（可选，已提交则跳过）
+./start.sh seed            # 导入赛程 + 事实数据（见 docs/导入赛程.md）
 ./start.sh build-web   # 改了 NEXT_PUBLIC_API_URL 后重建前端
 ```
 

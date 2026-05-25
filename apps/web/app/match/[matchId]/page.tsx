@@ -4,6 +4,7 @@ import { MatchDataPanel } from "@/components/match-data/MatchDataPanel";
 import { MarketPanel } from "@/components/market/MarketPanel";
 import { WarRoomPanel } from "@/components/war-room/WarRoomPanel";
 import { getConsensus, getFacts, getMarket, getMatch } from "@/lib/api";
+import { stageLabel } from "@/lib/stageLabels";
 
 export default async function MatchPage({
   params,
@@ -44,7 +45,8 @@ export default async function MatchPage({
         <span className="text-slate-400">vs</span> {match.away_flag} {match.away_team}
       </h1>
       <p className="mt-1 text-sm text-slate-400">
-        {new Date(match.kickoff_at).toLocaleString("zh-CN")} · {match.stage}
+        {new Date(match.kickoff_at).toLocaleString("zh-CN")} · {stageLabel(match.stage)}
+        {match.group_code ? ` · ${match.group_code} 组` : ""}
       </p>
 
       <nav className="mt-6 flex gap-2 border-b border-pitch-700">

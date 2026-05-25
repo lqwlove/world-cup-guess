@@ -37,23 +37,23 @@ async def seed() -> None:
         if matches_path.exists():
             for row in json.loads(matches_path.read_text()):
                 existing = await session.get(Match, row["id"])
-                if existing:
-                    continue
-                session.add(
-                    Match(
-                        id=row["id"],
-                        home_team=row["home_team"],
-                        away_team=row["away_team"],
-                        home_flag=row.get("home_flag"),
-                        away_flag=row.get("away_flag"),
-                        kickoff_at=_parse_dt(row["kickoff_at"]),
-                        stage=row["stage"],
-                        group_code=row.get("group_code"),
-                        status=row.get("status", "scheduled"),
-                        is_hot=row.get("is_hot", False),
-                        data_version=row.get("data_version", "v1"),
-                    )
+                fields = dict(
+                    home_team=row["home_team"],
+                    away_team=row["away_team"],
+                    home_flag=row.get("home_flag"),
+                    away_flag=row.get("away_flag"),
+                    kickoff_at=_parse_dt(row["kickoff_at"]),
+                    stage=row["stage"],
+                    group_code=row.get("group_code"),
+                    status=row.get("status", "scheduled"),
+                    is_hot=row.get("is_hot", False),
+                    data_version=row.get("data_version", "v1"),
                 )
+                if existing:
+                    for key, value in fields.items():
+                        setattr(existing, key, value)
+                else:
+                    session.add(Match(id=row["id"], **fields))
 
         facts_path = SEEDS_DIR / "match_facts.sample.json"
         if facts_path.exists():
@@ -102,7 +102,7 @@ async def seed() -> None:
 
 
 async def _seed_demo_discussion(session) -> None:
-    match_id = "wc2026-final"
+    match_id = "fifa-400021496"
     if not await session.get(Match, match_id):
         return
 
@@ -127,14 +127,14 @@ async def _seed_demo_discussion(session) -> None:
     discussion_id = discussion.id
 
     demo_messages = [
-        ("moderator", "STATEMENT", "Opening the tactical room for Argentina vs Spain.", [], []),
-        ("data", "STATEMENT", "Argentina's last 5: 4W 1D, 11 GF / 3 GA per EV-home-form-001.", ["EV-home-form-001"], ["EV-home-form-001"]),
-        ("squad", "STATEMENT", "Messi fit; Yamal fit for Spain.", ["EV-player-messi-001"], ["EV-player-messi-001", "EV-player-yamal-001"]),
-        ("market", "STATEMENT", "Market implies home 48%, draw 26%, away 26%.", [], []),
-        ("skeptic", "CHALLENGE", "@data Spain's xG trend in knockouts may be understated.", ["E-001"], []),
-        ("data", "REBUTTAL", "E-001 acknowledged; EV-elo-001 still favors Argentina slightly.", ["E-001"], ["EV-elo-001"]),
-        ("moderator", "CONSENSUS_FINAL", "Final consensus drafted for all plays.", [], []),
-        ("skeptic", "ACK_WITH_RESERVATION", "Signed with reservation: counter-attack variance.", [], []),
+        ("moderator", "STATEMENT", "开启阿根廷 vs 阿尔及利亚战术室合议。", [], []),
+        ("data", "STATEMENT", "阿根廷近5场 4胜1平，进11失3（EV-home-form-001）。", ["EV-home-form-001"], ["EV-home-form-001"]),
+        ("squad", "STATEMENT", "梅西可出战；阿尔及利亚锋线完整。", ["EV-player-messi-001"], ["EV-player-messi-001"]),
+        ("market", "STATEMENT", "市场隐含：主胜约 55%，平局 25%，客胜 20%。", [], []),
+        ("skeptic", "CHALLENGE", "@data 阿尔及利亚防守反击效率可能被低估。", ["E-001"], []),
+        ("data", "REBUTTAL", "已回应 E-001；EV-elo-001 仍略倾向主队。", ["E-001"], ["EV-elo-001"]),
+        ("moderator", "CONSENSUS_FINAL", "三项玩法共识草案已形成。", [], []),
+        ("skeptic", "ACK_WITH_RESERVATION", "保留意见签署：反击方差仍偏高。", [], []),
     ]
     for seq, (role, msg_type, content, refs, evidence_ids) in enumerate(demo_messages, start=1):
         session.add(
@@ -181,7 +181,7 @@ async def _seed_demo_discussion(session) -> None:
             {"outcome": "away", "consensus_p": 0.18, "market_p": 0.26, "edge": -0.08},
         ],
         "minority_opinions": [
-            {"role": "skeptic", "summary": "Spain counter-attack efficiency may be underestimated."}
+            {"role": "skeptic", "summary": "阿尔及利亚反击效率可能被低估。"}
         ],
         "unresolved": [],
         "skeptic_ack": "ACK_WITH_RESERVATION",

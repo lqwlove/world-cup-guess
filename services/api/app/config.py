@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     graph_version: str = "v1"
 
     hot_match_pregen_hours: int = 24
-    hot_match_ids: str = "wc2026-final,wc2026-semi-1"
+    hot_match_ids: str = "fifa-400021543,fifa-400021541,fifa-400021496"
 
 
 @lru_cache

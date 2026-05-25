@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Match } from "@/lib/types";
+import { stageLabel } from "@/lib/stageLabels";
 
 const STATUS_LABELS: Record<string, string> = {
   none: "未分析",
@@ -43,7 +44,7 @@ export function MatchCard({ match }: { match: Match }) {
             {match.away_team}
           </p>
           <p className="mt-1 text-sm text-slate-400">
-            {kickoff} · {match.stage}
+            {kickoff} · {stageLabel(match.stage)}
             {match.group_code ? ` · 小组 ${match.group_code}` : ""}
           </p>
         </div>

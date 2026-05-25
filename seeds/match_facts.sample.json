@@ -1,6 +1,6 @@
 [
   {
-    "match_id": "wc2026-final",
+    "match_id": "fifa-400021496",
     "fact_type": "recent_form",
     "evidence_id": "EV-home-form-001",
     "source": "seed-data",
@@ -12,7 +12,7 @@
     }
   },
   {
-    "match_id": "wc2026-final",
+    "match_id": "fifa-400021496",
     "fact_type": "recent_form",
     "evidence_id": "EV-away-form-001",
     "source": "seed-data",
@@ -24,7 +24,7 @@
     }
   },
   {
-    "match_id": "wc2026-final",
+    "match_id": "fifa-400021496",
     "fact_type": "head_to_head",
     "evidence_id": "EV-h2h-001",
     "source": "seed-data",
@@ -36,7 +36,7 @@
     }
   },
   {
-    "match_id": "wc2026-final",
+    "match_id": "fifa-400021496",
     "fact_type": "key_player",
     "evidence_id": "EV-player-messi-001",
     "source": "seed-data",
@@ -48,7 +48,7 @@
     }
   },
   {
-    "match_id": "wc2026-final",
+    "match_id": "fifa-400021496",
     "fact_type": "key_player",
     "evidence_id": "EV-player-yamal-001",
     "source": "seed-data",
@@ -60,7 +60,7 @@
     }
   },
   {
-    "match_id": "wc2026-final",
+    "match_id": "fifa-400021496",
     "fact_type": "technical",
     "evidence_id": "EV-elo-001",
     "source": "seed-data",
@@ -72,7 +72,7 @@
     }
   },
   {
-    "match_id": "wc2026-semi-1",
+    "match_id": "fifa-400021541",
     "fact_type": "recent_form",
     "evidence_id": "EV-home-form-bra",
     "source": "seed-data",
@@ -84,7 +84,7 @@
     }
   },
   {
-    "match_id": "wc2026-semi-1",
+    "match_id": "fifa-400021541",
     "fact_type": "recent_form",
     "evidence_id": "EV-away-form-fra",
     "source": "seed-data",

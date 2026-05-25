@@ -128,8 +128,9 @@ def _parse_gamma_response(data: Any, outcome_map: dict[str, str]) -> Optional[di
 
 def _mock_probabilities(match_id: str) -> dict[str, float]:
     mocks = {
-        "wc2026-final": {"home": 0.48, "draw": 0.26, "away": 0.26},
-        "wc2026-semi-1": {"home": 0.42, "draw": 0.28, "away": 0.30},
+        "fifa-400021543": {"home": 0.48, "draw": 0.26, "away": 0.26},
+        "fifa-400021541": {"home": 0.42, "draw": 0.28, "away": 0.30},
+        "fifa-400021496": {"home": 0.55, "draw": 0.25, "away": 0.20},
     }
     return mocks.get(match_id, {"home": 0.33, "draw": 0.34, "away": 0.33})
 

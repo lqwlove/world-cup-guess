@@ -6,6 +6,7 @@
 #   ./start.sh status         查看状态
 #   ./start.sh migrate        仅数据库迁移
 #   ./start.sh seed           导入种子数据
+#   ./start.sh import-matches 从 FIFA 脚本生成 seeds/matches.json
 #   ./start.sh build-web      仅构建前端（不启动）
 #   ./start.sh setup          仅创建 Conda 环境并安装依赖
 #
@@ -175,6 +176,11 @@ cmd_migrate() {
   run_alembic upgrade head
 }
 
+cmd_import_matches() {
+  echo "[赛程] 根据 FIFA 官网数据生成 seeds/matches.json"
+  python3 "$ROOT/scripts/import_fifa_matches.py"
+}
+
 cmd_seed() {
   load_env
   ensure_conda_ready
@@ -313,6 +319,7 @@ main() {
     status) cmd_status ;;
     migrate) load_env; cmd_migrate ;;
     seed) cmd_seed ;;
+    import-matches) cmd_import_matches ;;
     build-web) load_env; cmd_build_web ;;
     setup) cmd_setup ;;
     -h | help) usage ;;
