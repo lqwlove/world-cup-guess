@@ -5,13 +5,13 @@
     "away_team": "南非",
     "home_flag": "🇲🇽",
     "away_flag": "🇿🇦",
-    "kickoff_at": "2026-06-12T01:00:00Z",
+    "kickoff_at": "2026-06-11T20:00:00Z",
     "stage": "group",
     "group_code": "A",
     "venue": "Mexico City",
     "status": "scheduled",
     "is_hot": true,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021441",
@@ -19,13 +19,13 @@
     "away_team": "捷克",
     "home_flag": "🇰🇷",
     "away_flag": "🇨🇿",
-    "kickoff_at": "2026-06-12T08:00:00Z",
+    "kickoff_at": "2026-06-12T03:00:00Z",
     "stage": "group",
     "group_code": "A",
     "venue": "Guadalajara",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021449",
@@ -33,13 +33,13 @@
     "away_team": "波黑",
     "home_flag": "🇨🇦",
     "away_flag": "🇧🇦",
-    "kickoff_at": "2026-06-12T23:00:00Z",
+    "kickoff_at": "2026-06-12T20:00:00Z",
     "stage": "group",
     "group_code": "B",
     "venue": "Toronto",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021458",
@@ -47,13 +47,13 @@
     "away_team": "巴拉圭",
     "home_flag": "🇺🇸",
     "away_flag": "🇵🇾",
-    "kickoff_at": "2026-06-13T08:00:00Z",
+    "kickoff_at": "2026-06-13T02:00:00Z",
     "stage": "group",
     "group_code": "D",
     "venue": "Los Angeles",
     "status": "scheduled",
     "is_hot": true,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021447",
@@ -61,13 +61,13 @@
     "away_team": "瑞士",
     "home_flag": "🇶🇦",
     "away_flag": "🇨🇭",
-    "kickoff_at": "2026-06-14T02:00:00Z",
+    "kickoff_at": "2026-06-13T20:00:00Z",
     "stage": "group",
     "group_code": "B",
     "venue": "San Francisco Bay Area",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021456",
@@ -75,13 +75,13 @@
     "away_team": "摩洛哥",
     "home_flag": "🇧🇷",
     "away_flag": "🇲🇦",
-    "kickoff_at": "2026-06-14T02:00:00Z",
+    "kickoff_at": "2026-06-13T23:00:00Z",
     "stage": "group",
     "group_code": "C",
     "venue": "New York",
     "status": "scheduled",
     "is_hot": true,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021453",
@@ -89,13 +89,13 @@
     "away_team": "苏格兰",
     "home_flag": "🇭🇹",
     "away_flag": "🏴",
-    "kickoff_at": "2026-06-14T05:00:00Z",
+    "kickoff_at": "2026-06-14T02:00:00Z",
     "stage": "group",
     "group_code": "C",
     "venue": "Boston",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021463",
@@ -103,13 +103,13 @@
     "away_team": "土耳其",
     "home_flag": "🇦🇺",
     "away_flag": "🇹🇷",
-    "kickoff_at": "2026-06-14T11:00:00Z",
+    "kickoff_at": "2026-06-14T05:00:00Z",
     "stage": "group",
     "group_code": "D",
     "venue": "Vancouver",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021464",
@@ -117,13 +117,13 @@
     "away_team": "库拉索",
     "home_flag": "🇩🇪",
     "away_flag": "🇨🇼",
-    "kickoff_at": "2026-06-14T22:00:00Z",
+    "kickoff_at": "2026-06-14T18:00:00Z",
     "stage": "group",
     "group_code": "E",
     "venue": "Houston",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021470",
@@ -131,13 +131,13 @@
     "away_team": "日本",
     "home_flag": "🇳🇱",
     "away_flag": "🇯🇵",
-    "kickoff_at": "2026-06-15T01:00:00Z",
+    "kickoff_at": "2026-06-14T21:00:00Z",
     "stage": "group",
     "group_code": "F",
     "venue": "Dallas",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021467",
@@ -145,13 +145,13 @@
     "away_team": "厄瓜多尔",
     "home_flag": "🇨🇮",
     "away_flag": "🇪🇨",
-    "kickoff_at": "2026-06-15T03:00:00Z",
+    "kickoff_at": "2026-06-15T00:00:00Z",
     "stage": "group",
     "group_code": "E",
     "venue": "Philadelphia",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021474",
@@ -159,13 +159,13 @@
     "away_team": "突尼斯",
     "home_flag": "🇸🇪",
     "away_flag": "🇹🇳",
-    "kickoff_at": "2026-06-15T08:00:00Z",
+    "kickoff_at": "2026-06-15T03:00:00Z",
     "stage": "group",
     "group_code": "F",
     "venue": "Monterrey",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021482",
@@ -173,13 +173,13 @@
     "away_team": "佛得角",
     "home_flag": "🇪🇸",
     "away_flag": "🇨🇻",
-    "kickoff_at": "2026-06-15T20:00:00Z",
+    "kickoff_at": "2026-06-15T17:00:00Z",
     "stage": "group",
     "group_code": "H",
     "venue": "Atlanta",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021478",
@@ -187,13 +187,13 @@
     "away_team": "埃及",
     "home_flag": "🇧🇪",
     "away_flag": "🇪🇬",
-    "kickoff_at": "2026-06-16T02:00:00Z",
+    "kickoff_at": "2026-06-15T20:00:00Z",
     "stage": "group",
     "group_code": "G",
     "venue": "Seattle",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021486",
@@ -201,13 +201,13 @@
     "away_team": "乌拉圭",
     "home_flag": "🇸🇦",
     "away_flag": "🇺🇾",
-    "kickoff_at": "2026-06-16T02:00:00Z",
+    "kickoff_at": "2026-06-15T23:00:00Z",
     "stage": "group",
     "group_code": "H",
     "venue": "Miami",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021476",
@@ -215,13 +215,13 @@
     "away_team": "新西兰",
     "home_flag": "🇮🇷",
     "away_flag": "🇳🇿",
-    "kickoff_at": "2026-06-16T08:00:00Z",
+    "kickoff_at": "2026-06-16T02:00:00Z",
     "stage": "group",
     "group_code": "G",
     "venue": "Los Angeles",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021490",
@@ -229,13 +229,13 @@
     "away_team": "塞内加尔",
     "home_flag": "🇫🇷",
     "away_flag": "🇸🇳",
-    "kickoff_at": "2026-06-16T23:00:00Z",
+    "kickoff_at": "2026-06-16T20:00:00Z",
     "stage": "group",
     "group_code": "I",
     "venue": "New York",
     "status": "scheduled",
     "is_hot": true,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021488",
@@ -243,13 +243,13 @@
     "away_team": "挪威",
     "home_flag": "🇮🇶",
     "away_flag": "🇳🇴",
-    "kickoff_at": "2026-06-17T02:00:00Z",
+    "kickoff_at": "2026-06-16T23:00:00Z",
     "stage": "group",
     "group_code": "I",
     "venue": "Boston",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021496",
@@ -257,13 +257,13 @@
     "away_team": "阿尔及利亚",
     "home_flag": "🇦🇷",
     "away_flag": "🇩🇿",
-    "kickoff_at": "2026-06-17T06:00:00Z",
+    "kickoff_at": "2026-06-17T02:00:00Z",
     "stage": "group",
     "group_code": "J",
     "venue": "Kansas City",
     "status": "scheduled",
     "is_hot": true,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021498",
@@ -271,13 +271,13 @@
     "away_team": "约旦",
     "home_flag": "🇦🇹",
     "away_flag": "🇯🇴",
-    "kickoff_at": "2026-06-17T11:00:00Z",
+    "kickoff_at": "2026-06-17T05:00:00Z",
     "stage": "group",
     "group_code": "J",
     "venue": "San Francisco Bay Area",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021502",
@@ -285,13 +285,13 @@
     "away_team": "刚果（金）",
     "home_flag": "🇵🇹",
     "away_flag": "🇨🇩",
-    "kickoff_at": "2026-06-17T22:00:00Z",
+    "kickoff_at": "2026-06-17T18:00:00Z",
     "stage": "group",
     "group_code": "K",
     "venue": "Houston",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021507",
@@ -299,13 +299,13 @@
     "away_team": "克罗地亚",
     "home_flag": "🏴",
     "away_flag": "🇭🇷",
-    "kickoff_at": "2026-06-18T01:00:00Z",
+    "kickoff_at": "2026-06-17T21:00:00Z",
     "stage": "group",
     "group_code": "L",
     "venue": "Dallas",
     "status": "scheduled",
     "is_hot": true,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021510",
@@ -313,13 +313,13 @@
     "away_team": "巴拿马",
     "home_flag": "🇬🇭",
     "away_flag": "🇵🇦",
-    "kickoff_at": "2026-06-18T03:00:00Z",
+    "kickoff_at": "2026-06-18T00:00:00Z",
     "stage": "group",
     "group_code": "L",
     "venue": "Toronto",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021504",
@@ -327,13 +327,13 @@
     "away_team": "哥伦比亚",
     "home_flag": "🇺🇿",
     "away_flag": "🇨🇴",
-    "kickoff_at": "2026-06-18T08:00:00Z",
+    "kickoff_at": "2026-06-18T03:00:00Z",
     "stage": "group",
     "group_code": "K",
     "venue": "Mexico City",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021440",
@@ -341,13 +341,13 @@
     "away_team": "南非",
     "home_flag": "🇨🇿",
     "away_flag": "🇿🇦",
-    "kickoff_at": "2026-06-18T20:00:00Z",
+    "kickoff_at": "2026-06-18T17:00:00Z",
     "stage": "group",
     "group_code": "A",
     "venue": "Atlanta",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021446",
@@ -355,13 +355,13 @@
     "away_team": "波黑",
     "home_flag": "🇨🇭",
     "away_flag": "🇧🇦",
-    "kickoff_at": "2026-06-19T02:00:00Z",
+    "kickoff_at": "2026-06-18T20:00:00Z",
     "stage": "group",
     "group_code": "B",
     "venue": "Los Angeles",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021450",
@@ -369,13 +369,13 @@
     "away_team": "卡塔尔",
     "home_flag": "🇨🇦",
     "away_flag": "🇶🇦",
-    "kickoff_at": "2026-06-19T05:00:00Z",
+    "kickoff_at": "2026-06-18T23:00:00Z",
     "stage": "group",
     "group_code": "B",
     "venue": "Vancouver",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021442",
@@ -383,27 +383,13 @@
     "away_team": "韩国",
     "home_flag": "🇲🇽",
     "away_flag": "🇰🇷",
-    "kickoff_at": "2026-06-19T07:00:00Z",
+    "kickoff_at": "2026-06-19T02:00:00Z",
     "stage": "group",
     "group_code": "A",
     "venue": "Guadalajara",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
-  },
-  {
-    "id": "fifa-400021454",
-    "home_team": "苏格兰",
-    "away_team": "摩洛哥",
-    "home_flag": "🏴",
-    "away_flag": "🇲🇦",
-    "kickoff_at": "2026-06-20T02:00:00Z",
-    "stage": "group",
-    "group_code": "C",
-    "venue": "Boston",
-    "status": "scheduled",
-    "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021462",
@@ -411,13 +397,27 @@
     "away_team": "澳大利亚",
     "home_flag": "🇺🇸",
     "away_flag": "🇦🇺",
-    "kickoff_at": "2026-06-20T02:00:00Z",
+    "kickoff_at": "2026-06-19T20:00:00Z",
     "stage": "group",
     "group_code": "D",
     "venue": "Seattle",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
+  },
+  {
+    "id": "fifa-400021454",
+    "home_team": "苏格兰",
+    "away_team": "摩洛哥",
+    "home_flag": "🏴",
+    "away_flag": "🇲🇦",
+    "kickoff_at": "2026-06-19T23:00:00Z",
+    "stage": "group",
+    "group_code": "C",
+    "venue": "Boston",
+    "status": "scheduled",
+    "is_hot": false,
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021457",
@@ -425,13 +425,13 @@
     "away_team": "海地",
     "home_flag": "🇧🇷",
     "away_flag": "🇭🇹",
-    "kickoff_at": "2026-06-20T04:30:00Z",
+    "kickoff_at": "2026-06-20T01:30:00Z",
     "stage": "group",
     "group_code": "C",
     "venue": "Philadelphia",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021460",
@@ -439,13 +439,13 @@
     "away_team": "巴拉圭",
     "home_flag": "🇹🇷",
     "away_flag": "🇵🇾",
-    "kickoff_at": "2026-06-20T10:00:00Z",
+    "kickoff_at": "2026-06-20T04:00:00Z",
     "stage": "group",
     "group_code": "D",
     "venue": "San Francisco Bay Area",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021472",
@@ -453,13 +453,13 @@
     "away_team": "瑞典",
     "home_flag": "🇳🇱",
     "away_flag": "🇸🇪",
-    "kickoff_at": "2026-06-20T22:00:00Z",
+    "kickoff_at": "2026-06-20T18:00:00Z",
     "stage": "group",
     "group_code": "F",
     "venue": "Houston",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021469",
@@ -467,13 +467,13 @@
     "away_team": "科特迪瓦",
     "home_flag": "🇩🇪",
     "away_flag": "🇨🇮",
-    "kickoff_at": "2026-06-21T00:00:00Z",
+    "kickoff_at": "2026-06-20T21:00:00Z",
     "stage": "group",
     "group_code": "E",
     "venue": "Toronto",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021465",
@@ -481,13 +481,13 @@
     "away_team": "库拉索",
     "home_flag": "🇪🇨",
     "away_flag": "🇨🇼",
-    "kickoff_at": "2026-06-21T05:00:00Z",
+    "kickoff_at": "2026-06-21T01:00:00Z",
     "stage": "group",
     "group_code": "E",
     "venue": "Kansas City",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021475",
@@ -495,13 +495,13 @@
     "away_team": "日本",
     "home_flag": "🇹🇳",
     "away_flag": "🇯🇵",
-    "kickoff_at": "2026-06-21T10:00:00Z",
+    "kickoff_at": "2026-06-21T05:00:00Z",
     "stage": "group",
     "group_code": "F",
     "venue": "Monterrey",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021483",
@@ -509,13 +509,13 @@
     "away_team": "沙特阿拉伯",
     "home_flag": "🇪🇸",
     "away_flag": "🇸🇦",
-    "kickoff_at": "2026-06-21T20:00:00Z",
+    "kickoff_at": "2026-06-21T17:00:00Z",
     "stage": "group",
     "group_code": "H",
     "venue": "Atlanta",
     "status": "scheduled",
     "is_hot": true,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021477",
@@ -523,13 +523,13 @@
     "away_team": "伊朗",
     "home_flag": "🇧🇪",
     "away_flag": "🇮🇷",
-    "kickoff_at": "2026-06-22T02:00:00Z",
+    "kickoff_at": "2026-06-21T20:00:00Z",
     "stage": "group",
     "group_code": "G",
     "venue": "Los Angeles",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021487",
@@ -537,13 +537,13 @@
     "away_team": "佛得角",
     "home_flag": "🇺🇾",
     "away_flag": "🇨🇻",
-    "kickoff_at": "2026-06-22T02:00:00Z",
+    "kickoff_at": "2026-06-21T23:00:00Z",
     "stage": "group",
     "group_code": "H",
     "venue": "Miami",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021480",
@@ -551,13 +551,13 @@
     "away_team": "埃及",
     "home_flag": "🇳🇿",
     "away_flag": "🇪🇬",
-    "kickoff_at": "2026-06-22T08:00:00Z",
+    "kickoff_at": "2026-06-22T02:00:00Z",
     "stage": "group",
     "group_code": "G",
     "venue": "Vancouver",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021494",
@@ -565,13 +565,13 @@
     "away_team": "奥地利",
     "home_flag": "🇦🇷",
     "away_flag": "🇦🇹",
-    "kickoff_at": "2026-06-22T22:00:00Z",
+    "kickoff_at": "2026-06-22T18:00:00Z",
     "stage": "group",
     "group_code": "J",
     "venue": "Dallas",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021492",
@@ -579,13 +579,13 @@
     "away_team": "伊拉克",
     "home_flag": "🇫🇷",
     "away_flag": "🇮🇶",
-    "kickoff_at": "2026-06-23T01:00:00Z",
+    "kickoff_at": "2026-06-22T22:00:00Z",
     "stage": "group",
     "group_code": "I",
     "venue": "Philadelphia",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021491",
@@ -593,13 +593,13 @@
     "away_team": "塞内加尔",
     "home_flag": "🇳🇴",
     "away_flag": "🇸🇳",
-    "kickoff_at": "2026-06-23T04:00:00Z",
+    "kickoff_at": "2026-06-23T01:00:00Z",
     "stage": "group",
     "group_code": "I",
     "venue": "New York",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021499",
@@ -607,13 +607,13 @@
     "away_team": "阿尔及利亚",
     "home_flag": "🇯🇴",
     "away_flag": "🇩🇿",
-    "kickoff_at": "2026-06-23T10:00:00Z",
+    "kickoff_at": "2026-06-23T04:00:00Z",
     "stage": "group",
     "group_code": "J",
     "venue": "San Francisco Bay Area",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021503",
@@ -621,13 +621,13 @@
     "away_team": "乌兹别克斯坦",
     "home_flag": "🇵🇹",
     "away_flag": "🇺🇿",
-    "kickoff_at": "2026-06-23T22:00:00Z",
+    "kickoff_at": "2026-06-23T18:00:00Z",
     "stage": "group",
     "group_code": "K",
     "venue": "Houston",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021506",
@@ -635,13 +635,13 @@
     "away_team": "加纳",
     "home_flag": "🏴",
     "away_flag": "🇬🇭",
-    "kickoff_at": "2026-06-24T00:00:00Z",
+    "kickoff_at": "2026-06-23T21:00:00Z",
     "stage": "group",
     "group_code": "L",
     "venue": "Boston",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021511",
@@ -649,13 +649,13 @@
     "away_team": "克罗地亚",
     "home_flag": "🇵🇦",
     "away_flag": "🇭🇷",
-    "kickoff_at": "2026-06-24T03:00:00Z",
+    "kickoff_at": "2026-06-24T00:00:00Z",
     "stage": "group",
     "group_code": "L",
     "venue": "Toronto",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021501",
@@ -663,13 +663,13 @@
     "away_team": "刚果（金）",
     "home_flag": "🇨🇴",
     "away_flag": "🇨🇩",
-    "kickoff_at": "2026-06-24T08:00:00Z",
+    "kickoff_at": "2026-06-24T03:00:00Z",
     "stage": "group",
     "group_code": "K",
     "venue": "Guadalajara",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021451",
@@ -677,13 +677,13 @@
     "away_team": "加拿大",
     "home_flag": "🇨🇭",
     "away_flag": "🇨🇦",
-    "kickoff_at": "2026-06-25T02:00:00Z",
+    "kickoff_at": "2026-06-24T20:00:00Z",
     "stage": "group",
     "group_code": "B",
     "venue": "Vancouver",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021448",
@@ -691,13 +691,13 @@
     "away_team": "卡塔尔",
     "home_flag": "🇧🇦",
     "away_flag": "🇶🇦",
-    "kickoff_at": "2026-06-25T02:00:00Z",
+    "kickoff_at": "2026-06-24T20:00:00Z",
     "stage": "group",
     "group_code": "B",
     "venue": "Seattle",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021455",
@@ -705,13 +705,13 @@
     "away_team": "巴西",
     "home_flag": "🏴",
     "away_flag": "🇧🇷",
-    "kickoff_at": "2026-06-25T02:00:00Z",
+    "kickoff_at": "2026-06-24T23:00:00Z",
     "stage": "group",
     "group_code": "C",
     "venue": "Miami",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021452",
@@ -719,13 +719,13 @@
     "away_team": "海地",
     "home_flag": "🇲🇦",
     "away_flag": "🇭🇹",
-    "kickoff_at": "2026-06-25T02:00:00Z",
+    "kickoff_at": "2026-06-24T23:00:00Z",
     "stage": "group",
     "group_code": "C",
     "venue": "Atlanta",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021444",
@@ -733,13 +733,13 @@
     "away_team": "墨西哥",
     "home_flag": "🇨🇿",
     "away_flag": "🇲🇽",
-    "kickoff_at": "2026-06-25T07:00:00Z",
+    "kickoff_at": "2026-06-25T02:00:00Z",
     "stage": "group",
     "group_code": "A",
     "venue": "Mexico City",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021445",
@@ -747,13 +747,13 @@
     "away_team": "韩国",
     "home_flag": "🇿🇦",
     "away_flag": "🇰🇷",
-    "kickoff_at": "2026-06-25T07:00:00Z",
+    "kickoff_at": "2026-06-25T02:00:00Z",
     "stage": "group",
     "group_code": "A",
     "venue": "Monterrey",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021468",
@@ -761,13 +761,13 @@
     "away_team": "科特迪瓦",
     "home_flag": "🇨🇼",
     "away_flag": "🇨🇮",
-    "kickoff_at": "2026-06-26T00:00:00Z",
+    "kickoff_at": "2026-06-25T21:00:00Z",
     "stage": "group",
     "group_code": "E",
     "venue": "Philadelphia",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021466",
@@ -775,13 +775,13 @@
     "away_team": "德国",
     "home_flag": "🇪🇨",
     "away_flag": "🇩🇪",
-    "kickoff_at": "2026-06-26T00:00:00Z",
+    "kickoff_at": "2026-06-25T21:00:00Z",
     "stage": "group",
     "group_code": "E",
     "venue": "New York",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021471",
@@ -789,13 +789,13 @@
     "away_team": "瑞典",
     "home_flag": "🇯🇵",
     "away_flag": "🇸🇪",
-    "kickoff_at": "2026-06-26T04:00:00Z",
+    "kickoff_at": "2026-06-26T00:00:00Z",
     "stage": "group",
     "group_code": "F",
     "venue": "Dallas",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021473",
@@ -803,13 +803,13 @@
     "away_team": "荷兰",
     "home_flag": "🇹🇳",
     "away_flag": "🇳🇱",
-    "kickoff_at": "2026-06-26T04:00:00Z",
+    "kickoff_at": "2026-06-26T00:00:00Z",
     "stage": "group",
     "group_code": "F",
     "venue": "Kansas City",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021459",
@@ -817,13 +817,13 @@
     "away_team": "美国",
     "home_flag": "🇹🇷",
     "away_flag": "🇺🇸",
-    "kickoff_at": "2026-06-26T09:00:00Z",
+    "kickoff_at": "2026-06-26T03:00:00Z",
     "stage": "group",
     "group_code": "D",
     "venue": "Los Angeles",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021461",
@@ -831,13 +831,13 @@
     "away_team": "澳大利亚",
     "home_flag": "🇵🇾",
     "away_flag": "🇦🇺",
-    "kickoff_at": "2026-06-26T09:00:00Z",
+    "kickoff_at": "2026-06-26T03:00:00Z",
     "stage": "group",
     "group_code": "D",
     "venue": "San Francisco Bay Area",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021489",
@@ -845,13 +845,13 @@
     "away_team": "法国",
     "home_flag": "🇳🇴",
     "away_flag": "🇫🇷",
-    "kickoff_at": "2026-06-26T23:00:00Z",
+    "kickoff_at": "2026-06-26T20:00:00Z",
     "stage": "group",
     "group_code": "I",
     "venue": "Boston",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021493",
@@ -859,13 +859,13 @@
     "away_team": "伊拉克",
     "home_flag": "🇸🇳",
     "away_flag": "🇮🇶",
-    "kickoff_at": "2026-06-26T23:00:00Z",
+    "kickoff_at": "2026-06-26T20:00:00Z",
     "stage": "group",
     "group_code": "I",
     "venue": "Toronto",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021485",
@@ -873,13 +873,13 @@
     "away_team": "沙特阿拉伯",
     "home_flag": "🇨🇻",
     "away_flag": "🇸🇦",
-    "kickoff_at": "2026-06-27T05:00:00Z",
+    "kickoff_at": "2026-06-27T01:00:00Z",
     "stage": "group",
     "group_code": "H",
     "venue": "Houston",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021484",
@@ -887,13 +887,13 @@
     "away_team": "西班牙",
     "home_flag": "🇺🇾",
     "away_flag": "🇪🇸",
-    "kickoff_at": "2026-06-27T06:00:00Z",
+    "kickoff_at": "2026-06-27T01:00:00Z",
     "stage": "group",
     "group_code": "H",
     "venue": "Guadalajara",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021479",
@@ -901,13 +901,13 @@
     "away_team": "伊朗",
     "home_flag": "🇪🇬",
     "away_flag": "🇮🇷",
-    "kickoff_at": "2026-06-27T10:00:00Z",
+    "kickoff_at": "2026-06-27T04:00:00Z",
     "stage": "group",
     "group_code": "G",
     "venue": "Seattle",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021481",
@@ -915,13 +915,13 @@
     "away_team": "比利时",
     "home_flag": "🇳🇿",
     "away_flag": "🇧🇪",
-    "kickoff_at": "2026-06-27T10:00:00Z",
+    "kickoff_at": "2026-06-27T04:00:00Z",
     "stage": "group",
     "group_code": "G",
     "venue": "Vancouver",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021508",
@@ -929,13 +929,13 @@
     "away_team": "英格兰",
     "home_flag": "🇵🇦",
     "away_flag": "🏴",
-    "kickoff_at": "2026-06-28T01:00:00Z",
+    "kickoff_at": "2026-06-27T22:00:00Z",
     "stage": "group",
     "group_code": "L",
     "venue": "New York",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021509",
@@ -943,13 +943,13 @@
     "away_team": "加纳",
     "home_flag": "🇭🇷",
     "away_flag": "🇬🇭",
-    "kickoff_at": "2026-06-28T01:00:00Z",
+    "kickoff_at": "2026-06-27T22:00:00Z",
     "stage": "group",
     "group_code": "L",
     "venue": "Philadelphia",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021505",
@@ -957,13 +957,13 @@
     "away_team": "葡萄牙",
     "home_flag": "🇨🇴",
     "away_flag": "🇵🇹",
-    "kickoff_at": "2026-06-28T03:30:00Z",
+    "kickoff_at": "2026-06-28T00:30:00Z",
     "stage": "group",
     "group_code": "K",
     "venue": "Miami",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021500",
@@ -971,13 +971,13 @@
     "away_team": "乌兹别克斯坦",
     "home_flag": "🇨🇩",
     "away_flag": "🇺🇿",
-    "kickoff_at": "2026-06-28T03:30:00Z",
+    "kickoff_at": "2026-06-28T00:30:00Z",
     "stage": "group",
     "group_code": "K",
     "venue": "Atlanta",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021497",
@@ -985,13 +985,13 @@
     "away_team": "奥地利",
     "home_flag": "🇩🇿",
     "away_flag": "🇦🇹",
-    "kickoff_at": "2026-06-28T07:00:00Z",
+    "kickoff_at": "2026-06-28T03:00:00Z",
     "stage": "group",
     "group_code": "J",
     "venue": "Kansas City",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021495",
@@ -999,13 +999,13 @@
     "away_team": "阿根廷",
     "home_flag": "🇯🇴",
     "away_flag": "🇦🇷",
-    "kickoff_at": "2026-06-28T07:00:00Z",
+    "kickoff_at": "2026-06-28T03:00:00Z",
     "stage": "group",
     "group_code": "J",
     "venue": "Dallas",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021518",
@@ -1013,13 +1013,13 @@
     "away_team": "B组第2名",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-06-29T02:00:00Z",
+    "kickoff_at": "2026-06-28T20:00:00Z",
     "stage": "round32",
     "group_code": null,
     "venue": "Los Angeles",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021516",
@@ -1027,13 +1027,13 @@
     "away_team": "F组第2名",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-06-29T22:00:00Z",
+    "kickoff_at": "2026-06-29T18:00:00Z",
     "stage": "round32",
     "group_code": null,
     "venue": "Houston",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021513",
@@ -1041,13 +1041,13 @@
     "away_team": "E/F/第三候选",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-06-30T00:30:00Z",
+    "kickoff_at": "2026-06-29T21:30:00Z",
     "stage": "round32",
     "group_code": null,
     "venue": "Boston",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021522",
@@ -1055,13 +1055,13 @@
     "away_team": "C组第2名",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-06-30T07:00:00Z",
+    "kickoff_at": "2026-06-30T02:00:00Z",
     "stage": "round32",
     "group_code": null,
     "venue": "Monterrey",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021514",
@@ -1069,13 +1069,13 @@
     "away_team": "I组第2名",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-06-30T22:00:00Z",
+    "kickoff_at": "2026-06-30T18:00:00Z",
     "stage": "round32",
     "group_code": null,
     "venue": "Dallas",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021523",
@@ -1083,13 +1083,13 @@
     "away_team": "C/D/F/G/第三候选",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-01T01:00:00Z",
+    "kickoff_at": "2026-06-30T22:00:00Z",
     "stage": "round32",
     "group_code": null,
     "venue": "New York",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021520",
@@ -1097,13 +1097,13 @@
     "away_team": "C/E/F/H/第三候选",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-01T07:00:00Z",
+    "kickoff_at": "2026-07-01T02:00:00Z",
     "stage": "round32",
     "group_code": null,
     "venue": "Mexico City",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021512",
@@ -1111,13 +1111,13 @@
     "away_team": "E/H/I/J/K/第三候选",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-01T20:00:00Z",
+    "kickoff_at": "2026-07-01T17:00:00Z",
     "stage": "round32",
     "group_code": null,
     "venue": "Atlanta",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021525",
@@ -1125,13 +1125,13 @@
     "away_team": "A/E/H/I/J/第三候选",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-02T03:00:00Z",
+    "kickoff_at": "2026-07-01T21:00:00Z",
     "stage": "round32",
     "group_code": null,
     "venue": "Seattle",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021524",
@@ -1139,13 +1139,13 @@
     "away_team": "B/E/F/I/J/第三候选",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-02T07:00:00Z",
+    "kickoff_at": "2026-07-02T01:00:00Z",
     "stage": "round32",
     "group_code": null,
     "venue": "San Francisco Bay Area",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021519",
@@ -1153,13 +1153,13 @@
     "away_team": "J组第2名",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-03T02:00:00Z",
+    "kickoff_at": "2026-07-02T20:00:00Z",
     "stage": "round32",
     "group_code": null,
     "venue": "Los Angeles",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021526",
@@ -1167,13 +1167,13 @@
     "away_team": "L组第2名",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-03T03:00:00Z",
+    "kickoff_at": "2026-07-03T00:00:00Z",
     "stage": "round32",
     "group_code": null,
     "venue": "Toronto",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021527",
@@ -1181,13 +1181,13 @@
     "away_team": "E/F/G/I/J/第三候选",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-03T10:00:00Z",
+    "kickoff_at": "2026-07-03T04:00:00Z",
     "stage": "round32",
     "group_code": null,
     "venue": "Vancouver",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021515",
@@ -1195,13 +1195,13 @@
     "away_team": "G组第2名",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-03T23:00:00Z",
+    "kickoff_at": "2026-07-03T19:00:00Z",
     "stage": "round32",
     "group_code": null,
     "venue": "Dallas",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021521",
@@ -1209,13 +1209,13 @@
     "away_team": "H组第2名",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-04T02:00:00Z",
+    "kickoff_at": "2026-07-03T23:00:00Z",
     "stage": "round32",
     "group_code": null,
     "venue": "Miami",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021517",
@@ -1223,13 +1223,13 @@
     "away_team": "D/E/I/J/L/第三候选",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-04T06:30:00Z",
+    "kickoff_at": "2026-07-04T02:30:00Z",
     "stage": "round32",
     "group_code": null,
     "venue": "Kansas City",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021530",
@@ -1237,13 +1237,13 @@
     "away_team": "32强第75场胜者",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-04T22:00:00Z",
+    "kickoff_at": "2026-07-04T18:00:00Z",
     "stage": "round16",
     "group_code": null,
     "venue": "Houston",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021533",
@@ -1251,13 +1251,13 @@
     "away_team": "32强第77场胜者",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-05T01:00:00Z",
+    "kickoff_at": "2026-07-04T22:00:00Z",
     "stage": "round16",
     "group_code": null,
     "venue": "Philadelphia",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021532",
@@ -1265,13 +1265,13 @@
     "away_team": "32强第78场胜者",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-06T00:00:00Z",
+    "kickoff_at": "2026-07-05T21:00:00Z",
     "stage": "round16",
     "group_code": null,
     "venue": "New York",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021531",
@@ -1279,13 +1279,13 @@
     "away_team": "32强第80场胜者",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-06T06:00:00Z",
+    "kickoff_at": "2026-07-06T01:00:00Z",
     "stage": "round16",
     "group_code": null,
     "venue": "Mexico City",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021529",
@@ -1293,13 +1293,13 @@
     "away_team": "32强第84场胜者",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-07T00:00:00Z",
+    "kickoff_at": "2026-07-06T20:00:00Z",
     "stage": "round16",
     "group_code": null,
     "venue": "Dallas",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021534",
@@ -1307,13 +1307,13 @@
     "away_team": "32强第82场胜者",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-07T07:00:00Z",
+    "kickoff_at": "2026-07-07T01:00:00Z",
     "stage": "round16",
     "group_code": null,
     "venue": "Seattle",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021528",
@@ -1321,13 +1321,13 @@
     "away_team": "32强第88场胜者",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-07T20:00:00Z",
+    "kickoff_at": "2026-07-07T17:00:00Z",
     "stage": "round16",
     "group_code": null,
     "venue": "Atlanta",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021535",
@@ -1335,13 +1335,13 @@
     "away_team": "32强第87场胜者",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-08T03:00:00Z",
+    "kickoff_at": "2026-07-07T21:00:00Z",
     "stage": "round16",
     "group_code": null,
     "venue": "Vancouver",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021536",
@@ -1349,13 +1349,13 @@
     "away_team": "16强第90场胜者",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-09T23:00:00Z",
+    "kickoff_at": "2026-07-09T20:00:00Z",
     "stage": "quarter",
     "group_code": null,
     "venue": "Boston",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021538",
@@ -1363,13 +1363,13 @@
     "away_team": "16强第94场胜者",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-11T02:00:00Z",
+    "kickoff_at": "2026-07-10T20:00:00Z",
     "stage": "quarter",
     "group_code": null,
     "venue": "Los Angeles",
     "status": "scheduled",
     "is_hot": true,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021539",
@@ -1377,13 +1377,13 @@
     "away_team": "16强第92场胜者",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-11T23:00:00Z",
+    "kickoff_at": "2026-07-11T20:00:00Z",
     "stage": "quarter",
     "group_code": null,
     "venue": "Miami",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021537",
@@ -1391,13 +1391,13 @@
     "away_team": "16强第96场胜者",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-12T03:00:00Z",
+    "kickoff_at": "2026-07-11T23:00:00Z",
     "stage": "quarter",
     "group_code": null,
     "venue": "Kansas City",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021541",
@@ -1405,13 +1405,13 @@
     "away_team": "8强第98场胜者",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-15T00:00:00Z",
+    "kickoff_at": "2026-07-14T20:00:00Z",
     "stage": "semifinal",
     "group_code": null,
     "venue": "Dallas",
     "status": "scheduled",
     "is_hot": true,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021540",
@@ -1419,13 +1419,13 @@
     "away_team": "8强第100场胜者",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-15T23:00:00Z",
+    "kickoff_at": "2026-07-15T20:00:00Z",
     "stage": "semifinal",
     "group_code": null,
     "venue": "Atlanta",
     "status": "scheduled",
     "is_hot": true,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021542",
@@ -1433,13 +1433,13 @@
     "away_team": "半决赛102负者",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-19T01:00:00Z",
+    "kickoff_at": "2026-07-18T22:00:00Z",
     "stage": "third_place",
     "group_code": null,
     "venue": "Miami",
     "status": "scheduled",
     "is_hot": false,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   },
   {
     "id": "fifa-400021543",
@@ -1447,12 +1447,12 @@
     "away_team": "半决赛102胜者",
     "home_flag": "🏳️",
     "away_flag": "🏳️",
-    "kickoff_at": "2026-07-19T23:00:00Z",
+    "kickoff_at": "2026-07-19T20:00:00Z",
     "stage": "final",
     "group_code": null,
     "venue": "New York",
     "status": "scheduled",
     "is_hot": true,
-    "data_version": "fifa-2026-05"
+    "data_version": "fifa-2026-05-cn"
   }
 ]

@@ -2,13 +2,19 @@
 """
 从 FIFA 2026 官网赛程生成 seeds/matches.json（中文队名 + UTC 开球时间）。
 数据来源: https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/scores-fixtures
-页面时间为举办地当地时间，经 zoneinfo 转为 UTC。
+
+开球时间换算（面向中国观众）：
+  英文站「日期 + 钟面时间」+ 9 小时 → 北京时间（UTC+8），再写入 UTC。
+  与 FIFA 中国区 / 中文赛程表一致，例如：
+    6/11 19:00 墨西哥 → 6/12 04:00 北京；6/12 02:00 韩国 → 6/12 11:00 北京；
+    6/12 19:00 多伦多 → 6/13 04:00 北京。
+  勿用场馆当地 IANA 时区直接换算（会偏晚约 5 小时）。
 """
 
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -289,10 +295,19 @@ def resolve(code: str) -> tuple[str, str]:
     return (code, "🏳️")
 
 
+# 英文站钟面时间 → 北京时间的固定偏移（小时）
+_FIFA_EN_TO_BEIJING_HOURS = 9
+
+
 def to_utc_iso(date_str: str, time_str: str, venue: str) -> str:
-    tz = ZoneInfo(VENUE_TZ[venue])
-    local = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M").replace(tzinfo=tz)
-    return local.astimezone(ZoneInfo("UTC")).strftime("%Y-%m-%dT%H:%M:%SZ")
+    """venue 仅作元数据；换算不依赖场馆时区。"""
+    _ = venue
+    cn = ZoneInfo("Asia/Shanghai")
+    wall = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+    beijing = wall + timedelta(hours=_FIFA_EN_TO_BEIJING_HOURS)
+    return beijing.replace(tzinfo=cn).astimezone(ZoneInfo("UTC")).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
 
 
 def build_row(
@@ -320,7 +335,7 @@ def build_row(
         "venue": venue,
         "status": "scheduled",
         "is_hot": is_hot,
-        "data_version": "fifa-2026-05",
+        "data_version": "fifa-2026-05-cn",
     }
 
 
