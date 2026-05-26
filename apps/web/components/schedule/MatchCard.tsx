@@ -47,7 +47,8 @@ export function MatchCard({ match }: { match: Match }) {
         <span
           className={`shrink-0 rounded-full px-2 py-1 text-xs text-white ${STATUS_COLORS[match.deliberation_status] || STATUS_COLORS.none}`}
         >
-          {STATUS_LABELS[match.deliberation_status] || match.deliberation_status}
+          {STATUS_LABELS[match.deliberation_status] ||
+            match.deliberation_status}
         </span>
       </div>
     </Link>

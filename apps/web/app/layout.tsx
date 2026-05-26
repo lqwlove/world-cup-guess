@@ -7,7 +7,11 @@ export const metadata: Metadata = {
   description: "AI 战术室合议 — 赛事研究与信息分析工具",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="zh-CN">
       <body className="flex min-h-screen flex-col">
@@ -16,10 +20,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <a href="/" className="text-lg font-bold text-gold-400">
               世界杯 AI 战术室
             </a>
-            <span className="text-xs text-slate-400">2026 美加墨 · 研究工具</span>
+            <span className="text-xs text-slate-400">
+              2026 美加墨 · 研究工具
+            </span>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">{children}</main>
+        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+          {children}
+        </main>
         <DisclaimerFooter />
       </body>
     </html>

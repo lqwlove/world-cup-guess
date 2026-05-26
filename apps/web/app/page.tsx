@@ -22,7 +22,8 @@ export default async function HomePage({
   }
 
   matches = [...matches].sort(
-    (a, b) => parseUtc(a.kickoff_at).getTime() - parseUtc(b.kickoff_at).getTime(),
+    (a, b) =>
+      parseUtc(a.kickoff_at).getTime() - parseUtc(b.kickoff_at).getTime(),
   );
 
   return (
