@@ -1,74 +1,39 @@
-"""Run a specialist agent with role-specific tools."""
+"""Run a specialist agent with LangChain tool-calling."""
 
 import json
 from typing import Any
 
-from app.config import get_settings
-from app.deliberation.constants import ROLE_LABELS, SPECIALIST_ROLES
-from app.deliberation.llm import call_llm_json, generate_role_message
+from app.deliberation.activity import publish_agent_analyzing, publish_agent_idle
+from app.deliberation.agents.specialist_agent import run_specialist_agent
+from app.deliberation.constants import SPECIALIST_ROLES
+from app.deliberation.match_brief import is_vacuous_content
 from app.deliberation.rules import validate_message
 from app.deliberation.state import WarRoomState
-from app.deliberation.tools import run_data_tools, run_market_tools, run_squad_tools
-
-settings = get_settings()
+from app.deliberation.tools.facts import reload_evidence_ids
 
 
-async def _run_tools(role: str, match_id: str) -> dict[str, Any]:
-    if role == "data":
-        return await run_data_tools(match_id)
-    if role == "squad":
-        return await run_squad_tools(match_id)
-    if role == "market":
-        return await run_market_tools(match_id)
-    return {}
-
-
-def _format_tool_context(role: str, tool_result: dict[str, Any]) -> str:
-    if not tool_result:
-        return "（无工具数据）"
-    return json.dumps(tool_result, ensure_ascii=False)[:4000]
-
-
-async def _generate_with_tools(
-    role: str,
-    state: WarRoomState,
-    tool_result: dict[str, Any],
-) -> dict[str, Any]:
-    if settings.mock_llm:
-        return await generate_role_message(
-            role=role,
-            phase=state.get("phase", "Analysis"),
-            match_context={
-                **state.get("match_context", {}),
-                "tool_result": tool_result,
-            },
-            recent_messages=state.get("messages", []),
-            valid_evidence_ids=state.get("valid_evidence_ids", []),
+def _tool_trace_messages(role: str, phase: str, tool_trace: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    msgs: list[dict[str, Any]] = []
+    for i, item in enumerate(tool_trace):
+        msgs.append(
+            {
+                "role": role,
+                "msg_type": "TOOL_CALL",
+                "content": json.dumps(
+                    {
+                        "tool": item.get("tool", ""),
+                        "args": item.get("args") or {},
+                        "result_preview": item.get("result_preview", ""),
+                        "index": i + 1,
+                    },
+                    ensure_ascii=False,
+                ),
+                "refs": [],
+                "evidence_ids": [],
+                "phase": phase,
+            }
         )
-
-    label = ROLE_LABELS.get(role, role)
-    home = state.get("match_context", {}).get("home_team", "")
-    away = state.get("match_context", {}).get("away_team", "")
-    prompt = f"""你是【{label}】（{role}）。对阵 {home} vs {away}。
-你已调用工具获取数据：
-{_format_tool_context(role, tool_result)}
-
-最近讨论：{json.dumps(state.get("messages", [])[-8:], ensure_ascii=False)}
-可用证据编号：{state.get("valid_evidence_ids", [])}
-
-请用简体中文发言，像战术室群聊。
-仅输出 JSON：{{"msg_type":"STATEMENT|CHALLENGE|REBUTTAL|SUPPORT","content":"正文","refs":[],"evidence_ids":[]}}
-- 引用事实必须带 evidence_ids
-- CHALLENGE/REBUTTAL/SUPPORT 须在 refs 填论点编号如 E-001
-"""
-    data = await call_llm_json(prompt)
-    return {
-        "role": role,
-        "msg_type": data.get("msg_type", "STATEMENT"),
-        "content": data.get("content", ""),
-        "refs": data.get("refs", []),
-        "evidence_ids": data.get("evidence_ids", []),
-    }
+    return msgs
 
 
 async def specialist_node(state: WarRoomState) -> dict[str, Any]:
@@ -76,28 +41,43 @@ async def specialist_node(state: WarRoomState) -> dict[str, Any]:
     if role not in SPECIALIST_ROLES:
         return {"error": f"invalid next_role: {role}"}
 
-    tool_result = await _run_tools(role, state["match_id"])
-    msg = await _generate_with_tools(role, state, tool_result)
+    discussion_id = state.get("discussion_id", "")
+    if discussion_id:
+        await publish_agent_analyzing(discussion_id, role)
 
-    if state.get("mode") == "followup":
-        user_q = state.get("user_reply") or ""
-        if user_q and not msg.get("content"):
-            msg["content"] = f"针对你的问题：{user_q}"
+    raw_msg = await run_specialist_agent(role, state)
+    tool_trace = raw_msg.pop("_tool_trace", [])
+    aggregated = raw_msg.pop("_aggregated", {})
 
+    msg = {k: v for k, v in raw_msg.items() if not k.startswith("_")}
     msg["role"] = role
     msg["phase"] = state.get("phase", "Analysis")
 
-    valid = set(state.get("valid_evidence_ids", []))
+    if state.get("mode") == "followup":
+        user_q = state.get("user_reply") or ""
+        if user_q and is_vacuous_content(msg.get("content", "")):
+            msg["content"] = f"针对你的问题「{user_q[:80]}」：{msg.get('content', '')}"
+
+    valid_evidence_ids = await reload_evidence_ids(state["match_id"])
+    valid = set(valid_evidence_ids or state.get("valid_evidence_ids", []))
+
     result = validate_message(
         msg,
         phase=state.get("phase", "Analysis"),
         valid_evidence_ids=valid,
     )
     if not result.ok:
+        from app.deliberation.match_brief import fallback_statement
+
+        ctx = state.get("match_context", {})
+        text, evs = fallback_statement(role, ctx, aggregated, list(valid))
         msg = {
-            **msg,
-            "msg_type": "REVISE",
-            "content": f"（修订）{msg.get('content', '')}",
+            "role": role,
+            "msg_type": "STATEMENT",
+            "content": text,
+            "evidence_ids": evs,
+            "refs": [],
+            "phase": msg["phase"],
         }
 
     messages = list(state.get("messages", []))
@@ -106,18 +86,38 @@ async def specialist_node(state: WarRoomState) -> dict[str, Any]:
         claim_idx += 1
         msg["claim_id"] = f"E-{claim_idx:03d}"
 
+    messages.extend(_tool_trace_messages(role, msg["phase"], tool_trace))
     messages.append(msg)
+
+    if discussion_id:
+        await publish_agent_idle(discussion_id, role)
     registry = dict(state.get("claims_registry", {}))
     if msg.get("claim_id"):
         registry[msg["claim_id"]] = msg.get("content", "")[:120]
 
     outputs = dict(state.get("specialist_outputs", {}))
-    outputs[role] = {"tool_result": tool_result, "summary": msg.get("content", "")[:500]}
+    outputs[role] = {
+        "tool_trace": tool_trace,
+        "aggregated": aggregated,
+        "summary": msg.get("content", "")[:500],
+    }
 
-    return {
+    updates: dict[str, Any] = {
         "messages": messages,
         "claims_registry": registry,
         "specialist_outputs": outputs,
+        "valid_evidence_ids": list(valid),
         "turn": state.get("turn", 0) + 1,
         "next_role": None,
     }
+
+    if role == "market" and isinstance(aggregated, dict) and aggregated.get("probabilities"):
+        probs = aggregated["probabilities"]
+        updates["match_context"] = {
+            **state.get("match_context", {}),
+            "market_snapshot": probs,
+            "market_available": True,
+        }
+        updates["market_snapshot"] = probs
+
+    return updates

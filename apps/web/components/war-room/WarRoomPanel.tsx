@@ -22,7 +22,7 @@ import type {
 } from "@/lib/types";
 import { MarketSnapshotStrip } from "./MarketSnapshotStrip";
 import { PhaseProgressBar } from "./PhaseProgressBar";
-import { ChatRoom } from "./ChatRoom";
+import { ChatRoom, type LiveToolCall } from "./ChatRoom";
 import { ConsensusCertificate, PlaysRecommendation } from "./ConsensusCertificate";
 import { MarketEdgeTable } from "./MarketEdgeTable";
 import { MinorityOpinions } from "./MinorityOpinions";
@@ -57,6 +57,8 @@ export function WarRoomPanel({
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [userInput, setUserInput] = useState("");
   const [sendingUser, setSendingUser] = useState(false);
+  const [analyzingRole, setAnalyzingRole] = useState<string | null>(null);
+  const [liveToolCalls, setLiveToolCalls] = useState<LiveToolCall[]>([]);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const esRef = useRef<EventSource | null>(null);
 
@@ -72,8 +74,14 @@ export function WarRoomPanel({
     }
   }, []);
 
+  const clearAgentActivity = useCallback(() => {
+    setAnalyzingRole(null);
+    setLiveToolCalls([]);
+  }, []);
+
   const stopLive = useCallback(() => {
     setIsLive(false);
+    clearAgentActivity();
     if (pollRef.current) {
       clearInterval(pollRef.current);
       pollRef.current = null;
@@ -82,7 +90,7 @@ export function WarRoomPanel({
       esRef.current.close();
       esRef.current = null;
     }
-  }, []);
+  }, [clearAgentActivity]);
 
   const watchDiscussion = useCallback(
     async (disc: Discussion) => {
@@ -127,12 +135,39 @@ export function WarRoomPanel({
         const e = evt as {
           type?: string;
           seq?: number;
+          msg_type?: string;
           message?: string;
+          role?: string;
+          tool?: string;
+          args?: Record<string, unknown>;
+          result_preview?: string;
+          index?: number;
         };
+        if (e.type === "agent_analyzing" && e.role) {
+          setAnalyzingRole(e.role);
+          setLiveToolCalls([]);
+        }
+        if (e.type === "tool_call" && e.tool) {
+          setAnalyzingRole((prev) => e.role || prev);
+          setLiveToolCalls((prev) => [
+            ...prev,
+            {
+              tool: e.tool!,
+              args: e.args,
+              result_preview: e.result_preview,
+              index: e.index,
+            },
+          ]);
+        }
         if (e.type === "message" || e.type === "status") {
           await loadMessages(disc.id);
           const d = await getDiscussion(disc.id);
           setDiscussion(d);
+          if (e.type === "message" && e.msg_type === "TOOL_CALL") {
+            setLiveToolCalls([]);
+          } else if (e.type === "message" && e.msg_type) {
+            clearAgentActivity();
+          }
           if (TERMINAL.has(d.status) || d.status === "awaiting_user") {
             stopLive();
             if (d.status !== "failed" && d.status !== "awaiting_user") {
@@ -151,7 +186,7 @@ export function WarRoomPanel({
         }
       });
     },
-    [loadMessages, matchId, stopLive],
+    [clearAgentActivity, loadMessages, matchId, stopLive],
   );
 
   const runDeliberation = useCallback(
@@ -314,6 +349,8 @@ export function WarRoomPanel({
           <ChatRoom
             messages={messages}
             isLive={isLive}
+            analyzingRole={analyzingRole}
+            liveToolCalls={liveToolCalls}
             input={
               discussion && (canUserInput || isProcessing) ? (
                 <div className="flex gap-2">

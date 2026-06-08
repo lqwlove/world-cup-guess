@@ -197,6 +197,29 @@ def _resolve_model() -> str:
     return _DEFAULT_MODELS.get(settings.llm_provider, "gpt-4o")
 
 
+def get_tool_chat_model():
+    """Chat model with tool-calling support."""
+    if settings.llm_provider == "anthropic" and settings.anthropic_api_key:
+        from langchain_anthropic import ChatAnthropic
+
+        return ChatAnthropic(model=settings.llm_model, api_key=settings.anthropic_api_key)
+
+    base_url = _openai_compat_base_url()
+    if settings.openai_api_key and base_url:
+        from langchain_openai import ChatOpenAI
+
+        return ChatOpenAI(
+            model=_resolve_model(),
+            api_key=settings.openai_api_key,
+            base_url=base_url,
+            temperature=0.3,
+        )
+
+    from langchain_openai import ChatOpenAI
+
+    return ChatOpenAI(model="gpt-4o-mini", api_key="sk-mock", base_url=base_url or _OPENAI_COMPAT_BASES["openai"])
+
+
 async def _call_llm(prompt: str) -> str:
     if settings.llm_provider == "anthropic" and settings.anthropic_api_key:
         from langchain_anthropic import ChatAnthropic

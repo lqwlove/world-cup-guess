@@ -28,7 +28,40 @@ export const MSG_TYPE_LABELS: Record<string, string> = {
   USER_REPLY: "回复",
   SYSTEM_QUESTION: "提问",
   QUESTION: "提问",
+  TOOL_CALL: "工具调用",
 };
+
+export const TOOL_NAME_LABELS: Record<string, string> = {
+  sync_facts_from_football_data: "同步足球数据",
+  get_data_facts: "读取数据事实",
+  get_squad_facts: "读取阵容事实",
+  list_match_facts: "列出全部事实",
+  get_polymarket_snapshot: "获取预测市场",
+  get_peer_summaries: "读取专家发言",
+  web_search: "网络搜索",
+  search_teams_latest_status: "搜索球队最新状态",
+};
+
+export interface ToolCallPayload {
+  tool: string;
+  args?: Record<string, unknown>;
+  result_preview?: string;
+  index?: number;
+}
+
+export function parseToolCallContent(content: string): ToolCallPayload | null {
+  try {
+    const data = JSON.parse(content) as ToolCallPayload;
+    if (data && typeof data.tool === "string") return data;
+  } catch {
+    /* plain text fallback */
+  }
+  return null;
+}
+
+export function formatToolLabel(tool: string): string {
+  return TOOL_NAME_LABELS[tool] || tool;
+}
 
 export const ROLE_LABELS: Record<string, string> = {
   data: "数据官",
@@ -138,6 +171,7 @@ export function formatRefLabel(
 }
 
 export function formatEvidenceLabel(id: string): string {
+  if (id.startsWith("EV-web")) return `网络情报（${id}）`;
   if (id.includes("form")) return `近况数据（${id}）`;
   if (id.includes("h2h")) return `交锋记录（${id}）`;
   if (id.includes("player")) return `球员情报（${id}）`;

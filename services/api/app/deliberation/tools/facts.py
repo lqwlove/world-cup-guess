@@ -1,5 +1,6 @@
 """Fact tools for specialist agents (read from match_facts)."""
 
+import json
 from typing import Any
 
 from sqlalchemy import select
@@ -22,6 +23,11 @@ async def list_facts(match_id: str) -> list[dict[str, Any]]:
     ]
 
 
+async def reload_evidence_ids(match_id: str) -> list[str]:
+    facts = await list_facts(match_id)
+    return [f["evidence_id"] for f in facts]
+
+
 async def get_facts_by_types(match_id: str, fact_types: list[str]) -> list[dict[str, Any]]:
     facts = await list_facts(match_id)
     allowed = set(fact_types)
@@ -29,12 +35,18 @@ async def get_facts_by_types(match_id: str, fact_types: list[str]) -> list[dict[
 
 
 async def run_data_tools(match_id: str) -> dict[str, Any]:
-    facts = await get_facts_by_types(match_id, ["recent_form", "head_to_head", "technical", "standing"])
+    facts = await get_facts_by_types(
+        match_id, ["recent_form", "head_to_head", "technical", "standing", "web_intel"]
+    )
     evidence_ids = [f["evidence_id"] for f in facts]
     return {"facts": facts, "evidence_ids": evidence_ids}
 
 
 async def run_squad_tools(match_id: str) -> dict[str, Any]:
-    facts = await get_facts_by_types(match_id, ["key_player", "squad_snapshot"])
+    facts = await get_facts_by_types(match_id, ["key_player", "squad_snapshot", "web_intel"])
     evidence_ids = [f["evidence_id"] for f in facts]
     return {"facts": facts, "evidence_ids": evidence_ids}
+
+
+def facts_to_json(facts: list[dict[str, Any]]) -> str:
+    return json.dumps({"facts": facts, "count": len(facts)}, ensure_ascii=False)[:6000]

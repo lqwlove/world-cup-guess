@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     football_data_competition: str = "WC"
     polymarket_gamma_url: str = "https://gamma-api.polymarket.com"
 
+    # Web search（Tavily 优先；未配置时回退 DuckDuckGo）
+    tavily_api_key: str = ""
+    web_search_enabled: bool = True
+    web_search_max_results: int = 5
+
     max_rounds: int = 30
     deliberation_timeout_seconds: int = 2700
     prompt_version: str = "v1"

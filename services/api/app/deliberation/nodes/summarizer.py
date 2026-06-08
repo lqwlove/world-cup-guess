@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any
 
 from app.config import get_settings
+from app.deliberation.activity import publish_agent_analyzing, publish_agent_idle
 from app.deliberation.constants import SUPERVISOR_ROLE
 from app.deliberation.llm import call_llm_json
 from app.deliberation.rules import count_votes, median_confidence
@@ -80,6 +81,9 @@ async def summarizer_node(state: WarRoomState) -> dict[str, Any]:
     messages = list(state.get("messages", []))
     home = state.get("match_context", {}).get("home_team", "")
     away = state.get("match_context", {}).get("away_team", "")
+    discussion_id = state.get("discussion_id", "")
+    if discussion_id:
+        await publish_agent_analyzing(discussion_id, "summarizer")
 
     if settings.mock_llm:
         summary_text = (
@@ -115,6 +119,9 @@ async def summarizer_node(state: WarRoomState) -> dict[str, Any]:
         "phase": "Summary",
     }
     messages.append(supervisor_note)
+
+    if discussion_id:
+        await publish_agent_idle(discussion_id, "summarizer")
 
     return {
         "messages": messages,

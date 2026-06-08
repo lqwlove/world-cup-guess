@@ -70,28 +70,7 @@ def _mock_supervisor(state: WarRoomState) -> dict[str, Any]:
             "awaiting_user": False,
         }
 
-    if not _asked_user(messages):
-        return {
-            "supervisor_action": "ask_user",
-            "next_role": None,
-            "supervisor_reason": "需要了解用户更关注让球还是比分玩法",
-            "pending_user_question": "你更关注胜平负、让球还是比分玩法？可简要说明。",
-            "awaiting_user": True,
-        }
-
-    if _user_answered_after_question(messages) and turn < len(_ANALYSIS_ORDER) + 3:
-        extras = ["handicap", "scoreline", "skeptic"]
-        idx = max(0, turn - len(_ANALYSIS_ORDER))
-        if idx < len(extras):
-            extra = extras[idx]
-            return {
-                "supervisor_action": "call_agent",
-                "next_role": extra,
-                "supervisor_reason": f"根据用户偏好由{ROLE_LABELS.get(extra, extra)}补充",
-                "pending_user_question": None,
-                "awaiting_user": False,
-            }
-
+    # 首轮 6 专家各发言一次后直接进入总结，不向用户索要玩法偏好
     return {
         "supervisor_action": "finish",
         "next_role": None,
@@ -136,8 +115,10 @@ async def _llm_supervisor(state: WarRoomState) -> dict[str, Any]:
 {{"action":"call_agent|ask_user|finish","next_role":"data|squad|market|skeptic|handicap|scoreline|null","reason":"中文简短理由","user_question":"仅 ask_user 时填写"}}
 
 规则：
-- analysis 模式：优先让未发言的专家依次陈述，再交叉质疑，信息足够则 finish
-- 关键信息缺失时可 ask_user
+- 这是 2026 世界杯正赛，禁止因「缺少赛事属性/名单」反复调度同一专家
+- analysis 模式：优先让未发言的专家各陈述一次；6 人都发言后优先 finish
+- 仅当用户主动需要选择玩法方向时才 ask_user，勿为索要基础赛况问用户
+- 勿连续两轮调度同一专家，除非回应具体质疑
 - followup 模式：根据用户问题路由到最相关专家（next_role 必填）
 - finish 时 next_role 为 null
 """

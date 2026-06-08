@@ -4,11 +4,11 @@ from typing import Any
 
 from sqlalchemy import select
 
+from app.deliberation.match_brief import build_match_context
 from app.deliberation.runtime import get_session
 from app.deliberation.state import WarRoomState
 from app.models.entities import Match, MatchFact
 from app.services.market_service import fetch_polymarket_snapshot
-
 
 async def prep_node(state: WarRoomState) -> dict[str, Any]:
     session = get_session()
@@ -21,14 +21,9 @@ async def prep_node(state: WarRoomState) -> dict[str, Any]:
     snap = await fetch_polymarket_snapshot(session, state["match_id"])
     market_probs = snap.probabilities if snap else {}
 
-    match_context = {
-        "home_team": match.home_team,
-        "away_team": match.away_team,
-        "stage": match.stage,
-        "kickoff_at": match.kickoff_at.isoformat() + "Z",
-        "market_snapshot": market_probs,
-        "market_available": bool(market_probs),
-    }
+    match_context = build_match_context(match)
+    match_context["market_snapshot"] = market_probs
+    match_context["market_available"] = bool(market_probs)
 
     updates: dict[str, Any] = {
         "match_context": match_context,
