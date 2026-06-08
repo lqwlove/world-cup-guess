@@ -161,11 +161,52 @@ async def _llm_supervisor(state: WarRoomState) -> dict[str, Any]:
     }
 
 
+def _finish_decision(reason: str) -> dict[str, Any]:
+    return {
+        "supervisor_action": "finish",
+        "next_role": None,
+        "supervisor_reason": reason,
+        "pending_user_question": None,
+        "awaiting_user": False,
+    }
+
+
+def _apply_analysis_schedule(state: WarRoomState, decision: dict[str, Any]) -> dict[str, Any]:
+    """分析模式：按固定调度表推进，防止 LLM 调度官无限 call_agent。"""
+    if state.get("mode") != "analysis":
+        return decision
+
+    messages = state.get("messages", [])
+    turn = state.get("turn", 0)
+    max_turns = state.get("max_turns", settings.max_rounds)
+
+    if turn >= max_turns:
+        return _finish_decision("已达最大轮次，进入总结")
+
+    next_role = _pick_next_role(messages)
+    if next_role is None:
+        return _finish_decision("陈述与交叉质询已完成，进入总结")
+
+    if decision.get("supervisor_action") == "ask_user":
+        return decision
+
+    opening_done = all(_role_speech_count(messages, r) >= 1 for r in _OPENING_ORDER)
+    phase_label = "交叉质询" if opening_done else "开场陈述"
+    return {
+        "supervisor_action": "call_agent",
+        "next_role": next_role,
+        "supervisor_reason": f"{phase_label}，请{ROLE_LABELS.get(next_role, next_role)}发言",
+        "pending_user_question": None,
+        "awaiting_user": False,
+    }
+
+
 async def supervisor_node(state: WarRoomState) -> dict[str, Any]:
     if settings.mock_llm:
         decision = _mock_supervisor(state)
     else:
         decision = await _llm_supervisor(state)
+        decision = _apply_analysis_schedule(state, decision)
 
     trace = list(state.get("supervisor_trace", []))
     trace.append(

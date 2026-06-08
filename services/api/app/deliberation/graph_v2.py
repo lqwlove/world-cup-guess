@@ -79,4 +79,7 @@ async def get_compiled_graph() -> Any:
 
 
 def graph_config(discussion_id: str) -> dict[str, Any]:
-    return {"configurable": {"thread_id": str(discussion_id)}}
+    return {
+        "configurable": {"thread_id": str(discussion_id)},
+        "recursion_limit": settings.graph_recursion_limit,
+    }
