@@ -227,7 +227,7 @@ def _initial_state(discussion: Discussion) -> dict[str, Any]:
         "status": "running",
         "phase": "Analysis",
         "turn": 0,
-        "max_turns": settings.max_turns,
+        "max_turns": settings.max_rounds,
         "messages": [],
         "claims_registry": {},
         "valid_evidence_ids": [],

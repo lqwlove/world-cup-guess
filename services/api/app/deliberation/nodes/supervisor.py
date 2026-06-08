@@ -34,7 +34,7 @@ def _asked_user(messages: list[dict[str, Any]]) -> bool:
 def _mock_supervisor(state: WarRoomState) -> dict[str, Any]:
     mode = state.get("mode", "analysis")
     turn = state.get("turn", 0)
-    max_turns = state.get("max_turns", settings.max_turns)
+    max_turns = state.get("max_turns", settings.max_rounds)
     messages = state.get("messages", [])
     spoken = _roles_spoken(messages)
 
@@ -126,7 +126,7 @@ async def _llm_supervisor(state: WarRoomState) -> dict[str, Any]:
     prompt = f"""你是世界杯 AI 战术室【调度官】（supervisor），负责决定下一步行动。
 对阵：{home} vs {away}
 模式：{mode}
-当前轮次：{state.get("turn", 0)} / {state.get("max_turns", settings.max_turns)}
+当前轮次：{state.get("turn", 0)} / {state.get("max_turns", settings.max_rounds)}
 已发言专家：{sorted(_roles_spoken(messages))}
 可选专家：{SPECIALIST_ROLES}
 最近消息：{json.dumps(messages[-6:], ensure_ascii=False)}
