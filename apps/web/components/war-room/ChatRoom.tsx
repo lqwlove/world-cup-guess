@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import type { DiscussionMessage } from "@/lib/types";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -11,6 +11,9 @@ const ROLE_LABELS: Record<string, string> = {
   handicap: "让球专家",
   scoreline: "比分专家",
   moderator: "主持人",
+  supervisor: "调度官",
+  user: "你",
+  summarizer: "总结官",
 };
 
 const MSG_LABELS: Record<string, string> = {
@@ -25,6 +28,8 @@ const MSG_LABELS: Record<string, string> = {
   CONSENSUS_DRAFT: "共识草案",
   THREAD_DIGEST: "阶段摘要",
   REVISE: "修订",
+  USER_REPLY: "回复",
+  SYSTEM_QUESTION: "提问",
 };
 
 const ROLE_COLORS: Record<string, string> = {
@@ -35,14 +40,19 @@ const ROLE_COLORS: Record<string, string> = {
   squad: "bg-emerald-500/15 text-emerald-300",
   handicap: "bg-amber-500/15 text-amber-300",
   scoreline: "bg-cyan-500/15 text-cyan-300",
+  supervisor: "bg-gold-500/20 text-gold-300",
+  user: "bg-slate-600/40 text-slate-100",
+  summarizer: "bg-green-500/15 text-green-300",
 };
 
 export function ChatRoom({
   messages,
   isLive,
+  input,
 }: {
   messages: DiscussionMessage[];
   isLive?: boolean;
+  input?: ReactNode;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -105,6 +115,7 @@ export function ChatRoom({
         )}
         <div ref={bottomRef} />
       </div>
+      {input ? <div className="border-t border-pitch-700 p-3">{input}</div> : null}
     </div>
   );
 }

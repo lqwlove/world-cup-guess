@@ -98,6 +98,26 @@ export async function retryDiscussion(discussionId: string): Promise<Discussion>
   return fetchJson(`/api/discussions/${discussionId}/retry`, { method: "POST" });
 }
 
+export async function resumeDiscussion(
+  discussionId: string,
+  reply: string,
+): Promise<Discussion> {
+  return fetchJson(`/api/discussions/${discussionId}/resume`, {
+    method: "POST",
+    body: JSON.stringify({ reply }),
+  });
+}
+
+export async function followupChat(
+  discussionId: string,
+  question: string,
+): Promise<Discussion> {
+  return fetchJson(`/api/discussions/${discussionId}/chat`, {
+    method: "POST",
+    body: JSON.stringify({ question }),
+  });
+}
+
 export function streamDiscussion(
   discussionId: string,
   onEvent: (data: unknown) => void,

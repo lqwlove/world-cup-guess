@@ -22,6 +22,19 @@ _DEFAULT_MODELS: dict[str, str] = {
 }
 
 
+async def call_llm_json(prompt: str) -> dict:
+    raw = await _call_llm(prompt)
+    try:
+        text = raw.strip()
+        if text.startswith("```"):
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+        return json.loads(text.strip())
+    except json.JSONDecodeError:
+        return {"content": raw[:500]}
+
+
 async def generate_role_message(
     *,
     role: str,
@@ -54,6 +67,24 @@ async def generate_role_message(
         }
 
 
+def _format_market_snapshot(market: dict[str, float]) -> str:
+    labels = {"home": "主胜", "draw": "平局", "away": "客胜"}
+    parts = [f"{labels.get(k, k)}{v * 100:.0f}%" for k, v in market.items()]
+    return " / ".join(parts) if parts else ""
+
+
+def _mock_market_statement(match_context: dict[str, Any]) -> tuple[str, str, list[str]]:
+    market = match_context.get("market_snapshot") or {}
+    if market:
+        summary = _format_market_snapshot(market)
+        return (
+            "STATEMENT",
+            f"预测市场隐含：{summary}；需对照合议概率评估 Edge。",
+            [],
+        )
+    return ("STATEMENT", "暂无预测市场映射，合议仅依据基本面与技术面。", [])
+
+
 def _mock_message(
     role: str,
     phase: str,
@@ -67,7 +98,7 @@ def _mock_message(
     templates = {
         "data": ("STATEMENT", f"{home} 近期状态略占优，依据 {ev}。", [ev]),
         "squad": ("STATEMENT", f"{home} 对 {away} 关键球员阵容完整。", [ev] if valid_evidence_ids else []),
-        "market": ("STATEMENT", "市场隐含主胜约 48%，需关注临场波动。", []),
+        "market": _mock_market_statement(match_context),
         "skeptic": ("CHALLENGE", f"@data {away} 反击效率可能被低估。", ["E-001"]),
         "handicap": ("STATEMENT", "主让 0.5 球盘口与近况基本匹配。", []),
         "scoreline": ("STATEMENT", "比分集中在 2-1、1-1、1-0。", []),
@@ -129,11 +160,20 @@ def _build_prompt(
     phase_zh = PHASE_LABELS.get(phase, phase)
     home = match_context.get("home_team", "")
     away = match_context.get("away_team", "")
+    market = match_context.get("market_snapshot") or {}
+    market_block = ""
+    if market:
+        market_block = f"\n预测市场隐含概率（Polymarket 快照）：{_format_market_snapshot(market)}"
+    else:
+        market_block = "\n预测市场：本场暂无映射数据，请勿编造市场概率。"
+    market_role_hint = ""
+    if role == "market":
+        market_role_hint = "\n你是【市场官】：必须结合上述市场隐含概率，指出与其它角色共识的偏差或一致之处。"
     return f"""你是世界杯 AI 战术室中的【{label}】（角色代码 {role}）。
 当前阶段：{phase_zh}（{phase}）
 对阵：{home} vs {away}
-可用证据编号：{valid_evidence_ids}
-最近讨论（JSON）：{json.dumps(recent_messages[-8:], ensure_ascii=False)}
+可用证据编号：{valid_evidence_ids}{market_block}
+最近讨论（JSON）：{json.dumps(recent_messages[-8:], ensure_ascii=False)}{market_role_hint}
 
 请用简体中文撰写分析，语气专业、简洁，像战术室群聊发言。
 仅输出 JSON，不要 markdown：{{"msg_type":"STATEMENT|CHALLENGE|REBUTTAL|SUPPORT|VOTE|ACK|ACK_WITH_RESERVATION|CONSENSUS_FINAL","content":"中文正文","refs":[],"evidence_ids":[]}}

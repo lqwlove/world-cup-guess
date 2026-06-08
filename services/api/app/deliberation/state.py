@@ -1,27 +1,37 @@
-from typing import Any, Optional, TypedDict
+from typing import Any, Literal, Optional, TypedDict
+
+SupervisorAction = Literal["call_agent", "ask_user", "finish", "partial"]
 
 
-class DeliberationState(TypedDict, total=False):
+class WarRoomState(TypedDict, total=False):
     discussion_id: str
     match_id: str
+    mode: Literal["analysis", "followup"]
+    status: str
     phase: str
-    round: int
-    max_rounds: int
+    turn: int
+    max_turns: int
     messages: list[dict[str, Any]]
     claims_registry: dict[str, str]
-    facts_bundle: list[dict[str, Any]]
-    market_snapshot: dict[str, float]
     match_context: dict[str, Any]
     valid_evidence_ids: list[str]
-    challenge_streak: int
-    last_challenge_round: int
-    cross_exam_rounds: int
+    market_snapshot: dict[str, float]
+    specialist_outputs: dict[str, Any]
+    supervisor_action: SupervisorAction
+    next_role: Optional[str]
+    supervisor_reason: str
+    pending_user_question: Optional[str]
+    awaiting_user: bool
+    user_reply: Optional[str]
+    supervisor_trace: list[dict[str, Any]]
     votes_1x2: list[dict[str, Any]]
-    vote_open: bool
     final_artifact: Optional[dict[str, Any]]
     skeptic_ack: Optional[str]
     unresolved: list[str]
-    status: str
     error: Optional[str]
-    opening_done: bool
-    playbook_done: bool
+    persisted_count: int
+    resume_to_supervisor: bool
+
+
+# Legacy alias for old graph tests
+DeliberationState = WarRoomState

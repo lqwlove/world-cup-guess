@@ -6,6 +6,7 @@
 #   ./start.sh status         查看状态
 #   ./start.sh migrate        仅数据库迁移
 #   ./start.sh seed           导入种子数据
+#   ./start.sh sync-facts     从 football-data.org 同步数据概览（需 API Key）
 #   ./start.sh import-matches 从 FIFA 脚本生成 seeds/matches.json
 #   ./start.sh build-web      仅构建前端（不启动）
 #   ./start.sh setup          仅创建 Conda 环境并安装依赖
@@ -188,6 +189,19 @@ cmd_seed() {
   python -m app.scripts.seed
 }
 
+cmd_sync_facts() {
+  load_env
+  ensure_conda_ready
+  if [[ -z "${FOOTBALL_DATA_API_KEY:-}" ]]; then
+    echo "[错误] 请在 $ENV_FILE 中设置 FOOTBALL_DATA_API_KEY"
+    echo "      注册: https://www.football-data.org/"
+    exit 1
+  fi
+  echo "[同步] football-data.org → match_facts $*"
+  cd "$API_DIR"
+  python -m app.scripts.sync_football_facts "$@"
+}
+
 cmd_build_web() {
   load_env
   cd "$WEB_DIR"
@@ -319,6 +333,10 @@ main() {
     status) cmd_status ;;
     migrate) load_env; cmd_migrate ;;
     seed) cmd_seed ;;
+    sync-facts)
+      shift
+      cmd_sync_facts "$@"
+      ;;
     import-matches) cmd_import_matches ;;
     build-web) load_env; cmd_build_web ;;
     setup) cmd_setup ;;

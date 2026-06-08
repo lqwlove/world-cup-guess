@@ -15,7 +15,7 @@ _CN_TZ = ZoneInfo("Asia/Shanghai")
 def _deliberation_status(discussion: Optional[Discussion], artifact: Optional[ConsensusArtifact]) -> str:
     if not discussion:
         return "ready" if artifact else "none"
-    if discussion.status in ("running", "pending"):
+    if discussion.status in ("running", "pending", "awaiting_user"):
         return "generating"
     if discussion.status == "failed":
         return "failed"

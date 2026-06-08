@@ -1,5 +1,13 @@
 import type { MatchFact } from "@/lib/types";
 
+const FACT_TYPE_LABELS: Record<string, string> = {
+  recent_form: "近期战绩",
+  head_to_head: "历史交锋",
+  standing: "积分榜",
+  key_player: "关键球员",
+  technical: "技术统计",
+};
+
 export function MatchDataPanel({
   facts,
   dataVersion,
@@ -18,8 +26,8 @@ export function MatchDataPanel({
       <p className="mb-4 text-xs text-slate-500">数据版本: {dataVersion}</p>
       {Object.entries(byType).map(([type, items]) => (
         <section key={type} className="mb-6">
-          <h3 className="mb-2 text-sm font-medium capitalize text-slate-300">
-            {type.replace(/_/g, " ")}
+          <h3 className="mb-2 text-sm font-medium text-slate-300">
+            {FACT_TYPE_LABELS[type] || type.replace(/_/g, " ")}
           </h3>
           <ul className="space-y-2">
             {items.map((f) => (

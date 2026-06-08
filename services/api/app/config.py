@@ -21,12 +21,15 @@ class Settings(BaseSettings):
     mock_llm: bool = True
 
     football_data_api_key: str = ""
+    football_data_base_url: str = "https://api.football-data.org/v4"
+    football_data_competition: str = "WC"
     polymarket_gamma_url: str = "https://gamma-api.polymarket.com"
 
     max_rounds: int = 30
     deliberation_timeout_seconds: int = 2700
     prompt_version: str = "v1"
-    graph_version: str = "v1"
+    graph_version: str = "v2"
+    graph_checkpoint_enabled: bool = True
 
     hot_match_pregen_hours: int = 24
     hot_match_ids: str = "fifa-400021543,fifa-400021541,fifa-400021496"

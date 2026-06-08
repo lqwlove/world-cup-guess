@@ -38,6 +38,7 @@ export interface Discussion {
   id: string;
   match_id: string;
   status: string;
+  mode?: string;
   phase: string;
   round: number;
   error_reason?: string;

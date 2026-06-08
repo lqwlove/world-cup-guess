@@ -9,7 +9,11 @@ from app.models.entities import Match, MatchFact
 from app.schemas.match import FactsBundleOut, MatchDetailOut, MatchFactOut, MatchListOut
 from app.services import match_service
 from app.services.consensus_service import get_latest_consensus
+from app.config import get_settings
+from app.services.football_data_service import sync_match_facts
 from app.services.market_service import get_market_for_match
+
+settings = get_settings()
 
 router = APIRouter(prefix="/api/matches", tags=["matches"])
 
@@ -59,6 +63,29 @@ async def get_market(match_id: str, session: AsyncSession = Depends(get_session)
     if not market:
         return {"available": False, "message": "No market mapping"}
     return {"available": True, **market.model_dump()}
+
+
+@router.post("/{match_id}/facts/sync")
+async def sync_facts_from_football_data(
+    match_id: str, session: AsyncSession = Depends(get_session)
+):
+    """Refresh structured facts for one match from football-data.org."""
+    m = await session.get(Match, match_id)
+    if not m:
+        raise HTTPException(404, "Match not found")
+    if not settings.football_data_api_key:
+        raise HTTPException(
+            503,
+            "FOOTBALL_DATA_API_KEY is not configured",
+        )
+    try:
+        count = await sync_match_facts(session, match_id)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(502, f"football-data.org error: {exc}") from exc
+
+    return {"match_id": match_id, "facts_synced": count, "source": "football-data.org"}
 
 
 @router.get("/{match_id}/consensus")

@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { MatchDataPanel } from "@/components/match-data/MatchDataPanel";
-import { MarketPanel } from "@/components/market/MarketPanel";
 import { WarRoomPanel } from "@/components/war-room/WarRoomPanel";
 import { getConsensus, getFacts, getMarket, getMatch } from "@/lib/api";
 import { formatDateTime } from "@/lib/formatDateTime";
@@ -15,7 +14,11 @@ export default async function MatchPage({
   searchParams: Promise<{ tab?: string }>;
 }) {
   const { matchId } = await params;
-  const { tab = "war-room" } = await searchParams;
+  const { tab: tabParam = "war-room" } = await searchParams;
+  if (tabParam === "market") {
+    redirect(`/match/${matchId}?tab=war-room`);
+  }
+  const tab = tabParam;
 
   let match;
   try {
@@ -33,7 +36,6 @@ export default async function MatchPage({
   const tabs = [
     { id: "war-room", label: "AI 战术室" },
     { id: "data", label: "数据概览" },
-    { id: "market", label: "预测市场" },
   ];
 
   return (
@@ -71,6 +73,7 @@ export default async function MatchPage({
           <WarRoomPanel
             matchId={matchId}
             initialConsensus={consensus}
+            initialMarket={market}
             deliberationStatus={match.deliberation_status}
             initialDiscussionId={match.latest_discussion_id}
             deliberationError={match.deliberation_error}
@@ -79,7 +82,6 @@ export default async function MatchPage({
         {tab === "data" && (
           <MatchDataPanel facts={factsBundle.facts} dataVersion={factsBundle.data_version} />
         )}
-        {tab === "market" && <MarketPanel market={market} />}
       </div>
     </div>
   );

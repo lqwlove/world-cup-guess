@@ -3,8 +3,6 @@ import json
 from typing import Optional
 from uuid import UUID
 
-from arq import create_pool
-from arq.connections import RedisSettings
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,16 +11,24 @@ from sse_starlette.sse import EventSourceResponse
 from app.config import get_settings
 from app.db import get_session
 from app.models.entities import Discussion, Match
-from app.schemas.discussion import DiscussionCreate, DiscussionOut, MessageOut
+from app.schemas.discussion import (
+    DiscussionCreate,
+    DiscussionOut,
+    FollowupChat,
+    MessageOut,
+    ResumeDiscussion,
+)
+from app.services.arq_jobs import enqueue_arq_job
 from app.services.discussion_service import (
     clear_discussion_run,
     create_discussion,
     get_latest_discussion,
     get_messages,
+    prepare_followup_chat,
+    prepare_resume_discussion,
     run_deliberation,
 )
 from app.services.redis_pubsub import channel_name, enqueue_deliberation, get_redis
-from app.workers.settings import WorkerSettings
 
 router = APIRouter(prefix="/api", tags=["discussions"])
 settings = get_settings()
@@ -43,12 +49,8 @@ async def start_discussion(
 
     discussion.status = "pending"
     await session.commit()
-    try:
-        redis = await create_pool(RedisSettings.from_dsn(settings.redis_url))
-        await redis.enqueue_job("run_deliberation_task", str(discussion.id))
-        await redis.close()
-    except Exception:
-        pass
+    if not await enqueue_arq_job("run_deliberation_task", str(discussion.id)):
+        raise HTTPException(503, "后台任务队列不可用，请确认 Redis 与 ARQ worker 已启动")
 
     return _to_out(discussion)
 
@@ -63,19 +65,16 @@ async def retry_discussion(
         raise HTTPException(404, "Discussion not found")
     await clear_discussion_run(session, discussion_id)
     discussion.status = "pending"
-    discussion.phase = "Opening"
+    discussion.phase = "Analysis"
+    discussion.mode = "analysis"
     discussion.round = 0
     discussion.error_reason = None
     discussion.started_at = None
     discussion.finished_at = None
     await session.commit()
     await enqueue_deliberation(str(discussion.id))
-    try:
-        redis = await create_pool(RedisSettings.from_dsn(settings.redis_url))
-        await redis.enqueue_job("run_deliberation_task", str(discussion.id))
-        await redis.close()
-    except Exception:
-        pass
+    if not await enqueue_arq_job("run_deliberation_task", str(discussion_id)):
+        raise HTTPException(503, "后台任务队列不可用，请确认 Redis 与 ARQ worker 已启动")
     return _to_out(discussion)
 
 
@@ -151,6 +150,48 @@ async def stream_discussion(discussion_id: UUID):
     return EventSourceResponse(event_generator())
 
 
+@router.post("/discussions/{discussion_id}/resume", response_model=DiscussionOut)
+async def resume_discussion_endpoint(
+    discussion_id: UUID,
+    body: ResumeDiscussion,
+    session: AsyncSession = Depends(get_session),
+):
+    if not body.reply.strip():
+        raise HTTPException(400, "reply is required")
+    try:
+        discussion = await prepare_resume_discussion(
+            session, discussion_id, body.reply.strip()
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    if not await enqueue_arq_job(
+        "resume_discussion_task", str(discussion_id), body.reply.strip()
+    ):
+        raise HTTPException(503, "后台任务队列不可用，请确认 Redis 与 ARQ worker 已启动")
+    return _to_out(discussion)
+
+
+@router.post("/discussions/{discussion_id}/chat", response_model=DiscussionOut)
+async def followup_chat_endpoint(
+    discussion_id: UUID,
+    body: FollowupChat,
+    session: AsyncSession = Depends(get_session),
+):
+    if not body.question.strip():
+        raise HTTPException(400, "question is required")
+    try:
+        discussion = await prepare_followup_chat(
+            session, discussion_id, body.question.strip()
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    if not await enqueue_arq_job(
+        "followup_chat_task", str(discussion_id), body.question.strip()
+    ):
+        raise HTTPException(503, "后台任务队列不可用，请确认 Redis 与 ARQ worker 已启动")
+    return _to_out(discussion)
+
+
 @router.post("/discussions/{discussion_id}/run-sync")
 async def run_sync(
     discussion_id: UUID,
@@ -169,6 +210,7 @@ def _to_out(d: Discussion) -> DiscussionOut:
         id=d.id,
         match_id=d.match_id,
         status=d.status,
+        mode=getattr(d, "mode", "analysis") or "analysis",
         phase=d.phase,
         round=d.round,
         started_at=d.started_at,

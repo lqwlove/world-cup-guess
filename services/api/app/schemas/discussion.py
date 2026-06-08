@@ -13,11 +13,20 @@ class DiscussionOut(BaseModel):
     id: UUID
     match_id: str
     status: str
+    mode: str = "analysis"
     phase: str
     round: int
     started_at: Optional[datetime] = None
     finished_at: Optional[datetime] = None
     error_reason: Optional[str] = None
+
+
+class ResumeDiscussion(BaseModel):
+    reply: str
+
+
+class FollowupChat(BaseModel):
+    question: str
 
 
 class MessageOut(BaseModel):
