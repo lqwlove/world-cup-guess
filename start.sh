@@ -150,24 +150,81 @@ is_running() {
   kill -0 "$pid" 2>/dev/null
 }
 
+port_listen_pids() {
+  local port=$1
+  if command -v lsof &>/dev/null; then
+    lsof -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null || true
+    return 0
+  fi
+  if command -v fuser &>/dev/null; then
+    fuser -n tcp "$port" 2>/dev/null | tr -s ' ' '\n' | grep -E '^[0-9]+$' || true
+    return 0
+  fi
+  echo "[警告] 未找到 lsof/fuser，无法检测端口 $port" >&2
+}
+
+free_port() {
+  local port=$1
+  local label=${2:-服务}
+  local pids
+  pids="$(port_listen_pids "$port" | tr '\n' ' ' | xargs echo 2>/dev/null || true)"
+  [[ -n "$pids" && "$pids" != " " ]] || return 0
+  echo "[停止] 释放 ${label} 端口 ${port} (pid ${pids})"
+  for pid in $pids; do
+    kill "$pid" 2>/dev/null || true
+  done
+  sleep 1
+  for pid in $pids; do
+    kill -9 "$pid" 2>/dev/null || true
+  done
+}
+
+wait_port_free() {
+  local port=$1
+  local i
+  for i in 1 2 3 4 5; do
+    local busy
+    busy="$(port_listen_pids "$port" | head -1)"
+    [[ -z "$busy" ]] && return 0
+    sleep 1
+  done
+  echo "[错误] 端口 ${port} 仍被占用。可手动执行:"
+  echo "       lsof -tiTCP:${port} -sTCP:LISTEN | xargs kill -9"
+  return 1
+}
+
 stop_one() {
   local name=$1
   local pid_file=$2
-  if is_running "$pid_file"; then
+  local port=${3:-}
+  if [[ -f "$pid_file" ]]; then
     local pid
     pid=$(cat "$pid_file")
-    echo "[停止] $name (pid $pid)"
-    kill "$pid" 2>/dev/null || true
-    sleep 1
-    kill -9 "$pid" 2>/dev/null || true
+    if kill -0 "$pid" 2>/dev/null; then
+      echo "[停止] $name (pid $pid)"
+      # nohup bash 启动时，子进程 node/npm 可能仍存活
+      if command -v pkill &>/dev/null; then
+        pkill -P "$pid" 2>/dev/null || true
+      fi
+      kill "$pid" 2>/dev/null || true
+      sleep 1
+      if command -v pkill &>/dev/null; then
+        pkill -9 -P "$pid" 2>/dev/null || true
+      fi
+      kill -9 "$pid" 2>/dev/null || true
+    fi
   fi
   rm -f "$pid_file"
+  if [[ -n "$port" ]]; then
+    free_port "$port" "$name"
+    wait_port_free "$port"
+  fi
 }
 
 cmd_stop() {
-  stop_one "web" "$WEB_PID"
+  stop_one "web" "$WEB_PID" 3000
   stop_one "worker" "$WORKER_PID"
-  stop_one "api" "$API_PID"
+  stop_one "api" "$API_PID" 8000
   echo "[完成] 已停止"
 }
 
@@ -251,6 +308,8 @@ start_api() {
     echo "[跳过] api 已在运行 (pid $(cat "$API_PID"))"
     return
   fi
+  free_port 8000 "api"
+  wait_port_free 8000
   if ! conda_env_exists; then
     cmd_setup
   fi
@@ -281,12 +340,20 @@ start_web() {
     echo "[跳过] web 已在运行 (pid $(cat "$WEB_PID"))"
     return
   fi
+  # pid 文件丢失时，旧 next 进程可能仍占 3000
+  free_port 3000 "web"
+  wait_port_free 3000
   ensure_web_built
   cd "$WEB_DIR"
   echo "[启动] web → http://127.0.0.1:3000  日志: $LOG_DIR/web.log"
   echo "       静态资源由 Next 提供: /_next/static/* （须保持本进程运行，不能只丢静态目录）"
-  nohup npm run start -- -H 127.0.0.1 -p 3000 \
-    >>"$LOG_DIR/web.log" 2>&1 &
+  if command -v setsid &>/dev/null; then
+    nohup setsid npm run start -- -H 127.0.0.1 -p 3000 \
+      >>"$LOG_DIR/web.log" 2>&1 &
+  else
+    nohup npm run start -- -H 127.0.0.1 -p 3000 \
+      >>"$LOG_DIR/web.log" 2>&1 &
+  fi
   echo $! >"$WEB_PID"
 }
 
