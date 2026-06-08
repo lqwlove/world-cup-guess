@@ -92,7 +92,13 @@ async def summarizer_node(state: WarRoomState) -> dict[str, Any]:
         )
     else:
         prompt = f"""你是总结官。根据以下战术室讨论输出简体中文合议摘要（200字内）：
-{json.dumps(messages[-20:], ensure_ascii=False)}
+{json.dumps(messages[-24:], ensure_ascii=False)}
+
+要求：
+- 保留各方鲜明分歧，不要抹平成「双方差不多」
+- 写清主流观点、反对派质疑、最终倾向（主胜/平/客胜）及比分参考
+- 若存在未化解争议，在摘要中点明
+
 仅输出 JSON：{{"summary":"正文","skeptic_ack":"ACK|ACK_WITH_RESERVATION"}}
 """
         data = await call_llm_json(prompt)

@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID
 
-from sqlalchemy import delete, desc, select
+from sqlalchemy import delete, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -79,6 +79,42 @@ async def create_discussion(
     await session.commit()
     await session.refresh(discussion)
     return discussion
+
+
+async def list_discussions_for_match(
+    session: AsyncSession, match_id: str
+) -> list[dict[str, Any]]:
+    msg_count = (
+        select(
+            DiscussionMessage.discussion_id,
+            func.count(DiscussionMessage.id).label("message_count"),
+        )
+        .group_by(DiscussionMessage.discussion_id)
+        .subquery()
+    )
+    result = await session.execute(
+        select(Discussion, func.coalesce(msg_count.c.message_count, 0).label("message_count"))
+        .outerjoin(msg_count, Discussion.id == msg_count.c.discussion_id)
+        .where(Discussion.match_id == match_id)
+        .order_by(desc(Discussion.started_at), desc(Discussion.id))
+    )
+    rows: list[dict[str, Any]] = []
+    for discussion, message_count in result.all():
+        rows.append(
+            {
+                "id": discussion.id,
+                "match_id": discussion.match_id,
+                "status": discussion.status,
+                "mode": getattr(discussion, "mode", "analysis") or "analysis",
+                "phase": discussion.phase,
+                "round": discussion.round,
+                "started_at": discussion.started_at,
+                "finished_at": discussion.finished_at,
+                "error_reason": discussion.error_reason,
+                "message_count": int(message_count or 0),
+            }
+        )
+    return rows
 
 
 async def get_latest_discussion(

@@ -11,7 +11,14 @@ from app.deliberation.llm import call_llm_json, get_tool_chat_model
 from app.deliberation.match_brief import (
     fallback_statement,
     format_match_brief,
+    is_neutral_content,
     is_vacuous_content,
+)
+from app.deliberation.role_prompts import (
+    OPINION_RULES,
+    ROLE_DEBATE_GUIDE,
+    cross_exam_instruction,
+    format_claims_for_prompt,
 )
 from app.deliberation.state import WarRoomState
 from app.deliberation.activity import publish_tool_call
@@ -27,7 +34,7 @@ _AGENT_RULES = """
 1. 2026 世界杯正赛，比赛背景已给出，禁止索要赛事类型、时间、场地、名单。
 2. 发言前必须先调用工具获取数据；数据为空时先 sync_facts_from_football_data 再 get_*_facts。
 3. 需要最新伤病/阵容/赛前动态时，调用 search_teams_latest_status 或 web_search，引用 web_intel 的 evidence_id。
-4. 基于工具返回的事实分析，引用事实必须填 evidence_ids。
+4. 引用结构化事实必须填 evidence_ids；质疑/支持前人观点必须填 refs（如 E-001）。
 5. 禁止空话、「请提供」「待补充」。
 """
 
@@ -143,7 +150,12 @@ async def _finalize_message(
         aggregated = await run_market_tools(match_id)
 
     label = ROLE_LABELS.get(role, role)
-    prompt = f"""你是【{label}】（{role}）。
+    messages = state.get("messages", [])
+    registry = state.get("claims_registry", {})
+    persona = ROLE_DEBATE_GUIDE.get(role, f"你是【{label}】，要有鲜明观点。")
+    exam = cross_exam_instruction(role, messages)
+
+    prompt = f"""{persona}
 {format_match_brief(ctx)}
 
 【你通过工具获取的数据】
@@ -151,12 +163,20 @@ async def _finalize_message(
 
 【可用 evidence_id】{valid}
 
+【场上已有论点】
+{format_claims_for_prompt(registry)}
+
 【最近讨论】
-{json.dumps(state.get("messages", [])[-6:], ensure_ascii=False)}
+{json.dumps(messages[-8:], ensure_ascii=False)}
+
+{exam}
 
 {_AGENT_RULES}
+{OPINION_RULES}
 
-仅输出 JSON：{{"msg_type":"STATEMENT|CHALLENGE|REBUTTAL|SUPPORT","content":"简体中文 80-220字","refs":[],"evidence_ids":[]}}
+输出 JSON：
+{{"msg_type":"STATEMENT|CHALLENGE|REBUTTAL|SUPPORT","content":"简体中文 100-260字，观点鲜明","refs":["E-001"],"evidence_ids":[]}}
+说明：CHALLENGE/REBUTTAL/SUPPORT 时 refs 必填；STATEMENT 引用事实时 evidence_ids 必填。
 """
     data = await call_llm_json(prompt)
     content = data.get("content", "")
@@ -167,12 +187,14 @@ async def _finalize_message(
         "refs": data.get("refs", []),
         "evidence_ids": data.get("evidence_ids", []),
     }
-    if is_vacuous_content(content):
-        text, evs = fallback_statement(role, ctx, aggregated, valid)
+    if is_vacuous_content(content) or is_neutral_content(content):
+        text, evs, msg_type, refs = fallback_statement(
+            role, ctx, aggregated, valid, messages, registry
+        )
         msg["content"] = text
-        msg["msg_type"] = "STATEMENT"
+        msg["msg_type"] = msg_type
         msg["evidence_ids"] = evs
-        msg["refs"] = []
+        msg["refs"] = refs
 
     msg["_tool_trace"] = tool_trace
     msg["_aggregated"] = aggregated
@@ -184,22 +206,26 @@ async def run_specialist_agent(role: str, state: WarRoomState) -> dict[str, Any]
     ctx = dict(state.get("match_context", {}))
     outputs = state.get("specialist_outputs", {})
     label = ROLE_LABELS.get(role, role)
+    persona = ROLE_DEBATE_GUIDE.get(role, "")
     system_text = (
-        f"你是世界杯战术室【{label}】。{format_match_brief(ctx)}\n"
-        f"你可以使用工具获取事实数据，不要向用户索要基础赛况。\n{_AGENT_RULES}"
+        f"你是世界杯战术室【{label}】，战术辩论席成员，不是中立解说员。\n"
+        f"{persona}\n{format_match_brief(ctx)}\n"
+        f"你可以使用工具获取事实数据，不要向用户索要基础赛况。\n"
+        f"{_AGENT_RULES}\n{OPINION_RULES}"
     )
 
     if settings.mock_llm:
         tool_trace, aggregated = await _mock_tool_run(role, match_id, outputs)
         valid = await reload_evidence_ids(match_id) or state.get("valid_evidence_ids", [])
-        text, evs = fallback_statement(role, ctx, aggregated, valid)
-        if role == "skeptic" and state.get("messages"):
-            text = f"风控质疑：{aggregated.get('peers') and '上文共识' or '主队'}优势可能被高估，需防冷门。"
+        registry = state.get("claims_registry", {})
+        text, evs, msg_type, refs = fallback_statement(
+            role, ctx, aggregated, valid, state.get("messages", []), registry
+        )
         return {
             "role": role,
-            "msg_type": "CHALLENGE" if role == "skeptic" and state.get("messages") else "STATEMENT",
+            "msg_type": msg_type,
             "content": text,
-            "refs": ["E-001"] if role == "skeptic" and state.get("messages") else [],
+            "refs": refs,
             "evidence_ids": evs,
             "_tool_trace": tool_trace,
             "_aggregated": aggregated,

@@ -2,14 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  getConsensus,
   getDiscussion,
-  getLatestDiscussion,
+  getDiscussionConsensus,
   getMessages,
   followupChat,
   resumeDiscussion,
   retryDiscussion,
-  startDiscussion,
   streamDiscussion,
   submitFeedback,
   getSessionId,
@@ -23,37 +21,34 @@ import type {
 import { MarketSnapshotStrip } from "./MarketSnapshotStrip";
 import { PhaseProgressBar } from "./PhaseProgressBar";
 import { ChatRoom, type LiveToolCall } from "./ChatRoom";
-import { ConsensusCertificate, PlaysRecommendation } from "./ConsensusCertificate";
+import { PlaysRecommendation } from "./ConsensusCertificate";
 import { MarketEdgeTable } from "./MarketEdgeTable";
 import { MinorityOpinions } from "./MinorityOpinions";
-import { ReadModeToggle, type ReadMode } from "./ReadModeToggle";
-import { DisagreementRadar } from "./DisagreementRadar";
-import { MessageTimeline } from "./MessageTimeline";
 
 const TERMINAL = new Set(["completed", "partial", "failed"]);
+const ACTIVE = new Set(["running", "pending", "awaiting_user"]);
 
 export function WarRoomPanel({
   matchId,
+  discussionId,
+  initialDiscussion,
   initialConsensus,
   initialMarket,
-  deliberationStatus,
-  initialDiscussionId,
-  deliberationError,
 }: {
   matchId: string;
+  discussionId: string;
+  initialDiscussion: Discussion;
   initialConsensus: ConsensusArtifact | null;
   initialMarket: MarketData;
-  deliberationStatus: string;
-  initialDiscussionId?: string | null;
-  deliberationError?: string | null;
 }) {
   const [consensus, setConsensus] = useState(initialConsensus);
-  const [discussion, setDiscussion] = useState<Discussion | null>(null);
+  const [discussion, setDiscussion] = useState<Discussion>(initialDiscussion);
   const [messages, setMessages] = useState<DiscussionMessage[]>([]);
-  const [readMode, setReadMode] = useState<ReadMode>("full");
   const [loading, setLoading] = useState(false);
   const [isLive, setIsLive] = useState(false);
-  const [error, setError] = useState<string | null>(deliberationError || null);
+  const [error, setError] = useState<string | null>(
+    initialDiscussion.error_reason || null,
+  );
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [userInput, setUserInput] = useState("");
   const [sendingUser, setSendingUser] = useState(false);
@@ -62,7 +57,12 @@ export function WarRoomPanel({
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const esRef = useRef<EventSource | null>(null);
 
-  const loadMessages = useCallback(async (discussionId: string, fromSeq = 0) => {
+  const loadConsensus = useCallback(async () => {
+    const c = await getDiscussionConsensus(discussionId);
+    setConsensus(c);
+  }, [discussionId]);
+
+  const loadMessages = useCallback(async (fromSeq = 0) => {
     const msgs = await getMessages(discussionId, fromSeq);
     if (fromSeq > 0) {
       setMessages((prev) => {
@@ -72,7 +72,7 @@ export function WarRoomPanel({
     } else {
       setMessages(msgs);
     }
-  }, []);
+  }, [discussionId]);
 
   const clearAgentActivity = useCallback(() => {
     setAnalyzingRole(null);
@@ -97,29 +97,27 @@ export function WarRoomPanel({
       setDiscussion(disc);
       if (TERMINAL.has(disc.status) || disc.status === "awaiting_user") {
         stopLive();
-        await loadMessages(disc.id);
+        await loadMessages();
         if (disc.status !== "failed" && disc.status !== "awaiting_user") {
-          const c = await getConsensus(matchId);
-          setConsensus(c);
+          await loadConsensus();
         }
         return;
       }
 
       setIsLive(true);
-      await loadMessages(disc.id);
+      await loadMessages();
 
       const refresh = async () => {
         try {
-          await loadMessages(disc.id);
-          const d = await getDiscussion(disc.id);
+          await loadMessages();
+          const d = await getDiscussion(discussionId);
           setDiscussion(d);
           if (TERMINAL.has(d.status) || d.status === "awaiting_user") {
             stopLive();
             if (d.status === "failed") {
               setError(d.error_reason || "合议生成失败");
             } else if (d.status !== "awaiting_user") {
-              const c = await getConsensus(matchId);
-              setConsensus(c);
+              await loadConsensus();
             }
           }
         } catch {
@@ -131,10 +129,9 @@ export function WarRoomPanel({
       pollRef.current = setInterval(refresh, 2000);
 
       if (esRef.current) esRef.current.close();
-      esRef.current = streamDiscussion(disc.id, async (evt) => {
+      esRef.current = streamDiscussion(discussionId, async (evt) => {
         const e = evt as {
           type?: string;
-          seq?: number;
           msg_type?: string;
           message?: string;
           role?: string;
@@ -160,8 +157,8 @@ export function WarRoomPanel({
           ]);
         }
         if (e.type === "message" || e.type === "status") {
-          await loadMessages(disc.id);
-          const d = await getDiscussion(disc.id);
+          await loadMessages();
+          const d = await getDiscussion(discussionId);
           setDiscussion(d);
           if (e.type === "message" && e.msg_type === "TOOL_CALL") {
             setLiveToolCalls([]);
@@ -171,14 +168,12 @@ export function WarRoomPanel({
           if (TERMINAL.has(d.status) || d.status === "awaiting_user") {
             stopLive();
             if (d.status !== "failed" && d.status !== "awaiting_user") {
-              const c = await getConsensus(matchId);
-              setConsensus(c);
+              await loadConsensus();
             }
           }
         }
         if (e.type === "consensus") {
-          const c = await getConsensus(matchId);
-          setConsensus(c);
+          await loadConsensus();
         }
         if (e.type === "error") {
           setError(e.message || "合议出错");
@@ -186,46 +181,16 @@ export function WarRoomPanel({
         }
       });
     },
-    [clearAgentActivity, loadMessages, matchId, stopLive],
+    [clearAgentActivity, discussionId, loadConsensus, loadMessages, stopLive],
   );
-
-  const runDeliberation = useCallback(
-    async (disc: Discussion) => {
-      setError(null);
-      setConsensus(null);
-      await watchDiscussion(disc);
-    },
-    [watchDiscussion],
-  );
-
-  const handleStart = async (forceRefresh = false) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const disc = await startDiscussion(matchId, forceRefresh);
-      if (disc.status === "completed" && !forceRefresh) {
-        setDiscussion(disc);
-        await loadMessages(disc.id);
-        const c = await getConsensus(matchId);
-        setConsensus(c);
-        return;
-      }
-      await runDeliberation(disc);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "启动失败");
-      stopLive();
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleRetry = async () => {
-    if (!discussion?.id) return;
     setLoading(true);
     setError(null);
     try {
-      const disc = await retryDiscussion(discussion.id);
-      await runDeliberation(disc);
+      const disc = await retryDiscussion(discussionId);
+      setConsensus(null);
+      await watchDiscussion(disc);
     } catch (e) {
       setError(e instanceof Error ? e.message : "重试失败");
       stopLive();
@@ -235,81 +200,46 @@ export function WarRoomPanel({
   };
 
   useEffect(() => {
+    let cancelled = false;
     const boot = async () => {
-      try {
-        let disc: Discussion | null = null;
-        if (initialDiscussionId) {
-          try {
-            disc = await getDiscussion(initialDiscussionId);
-          } catch {
-            disc = await getLatestDiscussion(matchId);
-          }
-        } else if (
-          deliberationStatus !== "none" ||
-          initialConsensus?.discussion_id
-        ) {
-          const id = initialConsensus?.discussion_id;
-          if (id) {
-            disc = await getDiscussion(id);
-          } else {
-            try {
-              disc = await getLatestDiscussion(matchId);
-            } catch {
-              disc = null;
-            }
-          }
-        }
-        if (!disc) return;
-        setDiscussion(disc);
-        await loadMessages(disc.id);
-        if (
-          disc.status === "running" ||
-          disc.status === "pending" ||
-          disc.status === "awaiting_user"
-        ) {
-          await watchDiscussion(disc);
-        }
-      } catch {
-        /* no prior discussion */
+      await loadMessages();
+      if (!cancelled && ACTIVE.has(initialDiscussion.status)) {
+        await watchDiscussion(initialDiscussion);
       }
     };
-    boot();
-    return () => stopLive();
-  }, [
-    initialDiscussionId,
-    initialConsensus?.discussion_id,
-    deliberationStatus,
-    loadMessages,
-    matchId,
-    stopLive,
-    watchDiscussion,
-  ]);
+    void boot();
+    return () => {
+      cancelled = true;
+      stopLive();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- boot once per discussionId
+  }, [discussionId]);
 
   const artifact = consensus?.artifact;
   const isProcessing =
-    discussion?.status === "running" || discussion?.status === "pending";
+    discussion.status === "running" || discussion.status === "pending";
   const canUserInput =
     !isProcessing &&
-    (discussion?.status === "awaiting_user" || discussion?.status === "completed");
+    (discussion.status === "awaiting_user" || discussion.status === "completed");
   const inputPlaceholder = isProcessing
     ? "专家分析中，请稍候…"
-    : discussion?.status === "awaiting_user"
+    : discussion.status === "awaiting_user"
       ? "调度官在等待你的回答…"
       : "分析完成后可继续追问各专家…";
 
   const handleUserSend = async () => {
     const text = userInput.trim();
-    if (!text || !discussion?.id || sendingUser) return;
+    if (!text || sendingUser) return;
     setSendingUser(true);
     setError(null);
     try {
       const updated =
         discussion.status === "awaiting_user"
-          ? await resumeDiscussion(discussion.id, text)
-          : await followupChat(discussion.id, text);
+          ? await resumeDiscussion(discussionId, text)
+          : await followupChat(discussionId, text);
       setUserInput("");
       setDiscussion(updated);
-      await loadMessages(updated.id);
+      await loadMessages();
       await watchDiscussion({ ...updated, status: "running" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "发送失败");
@@ -321,13 +251,7 @@ export function WarRoomPanel({
   const showChat =
     isLive ||
     messages.length > 0 ||
-    discussion?.status === "running" ||
-    discussion?.status === "pending" ||
-    discussion?.status === "awaiting_user";
-  const canRetry =
-    deliberationStatus === "failed" ||
-    discussion?.status === "failed" ||
-    deliberationStatus === "partial";
+    ACTIVE.has(discussion.status);
 
   return (
     <div>
@@ -340,9 +264,7 @@ export function WarRoomPanel({
 
       <MarketSnapshotStrip market={initialMarket} />
 
-      {discussion && (
-        <PhaseProgressBar phase={discussion.phase} round={discussion.round} />
-      )}
+      <PhaseProgressBar phase={discussion.phase} round={discussion.round} />
 
       {showChat && (
         <div className="mb-4">
@@ -352,7 +274,7 @@ export function WarRoomPanel({
             analyzingRole={analyzingRole}
             liveToolCalls={liveToolCalls}
             input={
-              discussion && (canUserInput || isProcessing) ? (
+              canUserInput || isProcessing ? (
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -384,73 +306,33 @@ export function WarRoomPanel({
         <div className="mb-4 rounded-lg border border-red-800/60 bg-red-950/30 px-4 py-3 text-sm text-red-300">
           <p className="font-medium">合议未成功</p>
           <p className="mt-1 text-red-200/80">{error}</p>
-          {discussion && (
-            <button
-              type="button"
-              onClick={handleRetry}
-              disabled={loading}
-              className="mt-3 rounded-lg bg-red-600 px-4 py-1.5 text-sm text-white hover:bg-red-500 disabled:opacity-50"
-            >
-              {loading ? "重新生成中…" : "重新生成合议"}
-            </button>
-          )}
-        </div>
-      )}
-
-      {artifact && (
-        <>
-          <ConsensusCertificate data={artifact} />
-          <PlaysRecommendation data={artifact} />
-          <MarketEdgeTable edges={artifact.market_edge} />
-          <MinorityOpinions opinions={artifact.minority_opinions} />
-        </>
-      )}
-
-      {deliberationStatus === "none" && !discussion && !loading && (
-        <div className="rounded-xl border border-dashed border-pitch-600 p-6 text-center">
-          <p className="mb-2 text-slate-300">开始战术室合议</p>
-          <p className="mb-4 text-sm text-slate-500">
-            预计 10–30 分钟；下方群聊区将实时显示各角色中文讨论
-          </p>
           <button
             type="button"
-            onClick={() => handleStart(false)}
+            onClick={() => void handleRetry()}
             disabled={loading}
-            className="rounded-lg bg-pitch-500 px-6 py-2 font-medium text-white hover:bg-pitch-400 disabled:opacity-50"
+            className="mt-3 rounded-lg bg-red-600 px-4 py-1.5 text-sm text-white hover:bg-red-500 disabled:opacity-50"
           >
-            {loading ? "启动中…" : "开始战术室合议"}
+            {loading ? "重新生成中…" : "重新生成本次分析"}
           </button>
         </div>
       )}
 
-      {(deliberationStatus === "ready" || deliberationStatus === "partial") && !isLive && (
+      {discussion.status === "failed" && !error && (
         <button
           type="button"
-          onClick={() => handleStart(true)}
+          onClick={() => void handleRetry()}
           disabled={loading}
           className="mb-4 text-sm text-pitch-400 underline hover:text-pitch-300"
         >
-          {loading ? "生成中…" : "重新生成合议（强制刷新）"}
+          {loading ? "重新生成中…" : "重新生成本次分析"}
         </button>
       )}
 
-      {canRetry && !error && discussion && (
-        <button
-          type="button"
-          onClick={handleRetry}
-          disabled={loading}
-          className="mb-4 text-sm text-pitch-400 underline"
-        >
-          重新生成
-        </button>
-      )}
-
-      {messages.length > 0 && !isLive && (
+      {artifact && (
         <>
-          <DisagreementRadar messages={messages} />
-          <ReadModeToggle mode={readMode} onChange={setReadMode} />
-          <p className="mb-2 text-xs text-slate-500">按阶段折叠查看</p>
-          <MessageTimeline messages={messages} readMode={readMode} />
+          <PlaysRecommendation data={artifact} />
+          <MarketEdgeTable edges={artifact.market_edge} />
+          <MinorityOpinions opinions={artifact.minority_opinions} />
         </>
       )}
 

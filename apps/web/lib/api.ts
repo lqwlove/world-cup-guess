@@ -1,6 +1,7 @@
 import type {
   ConsensusArtifact,
   Discussion,
+  DiscussionListItem,
   DiscussionMessage,
   MarketData,
   Match,
@@ -57,6 +58,22 @@ export async function getConsensus(
   } catch {
     return null;
   }
+}
+
+export async function getDiscussionConsensus(
+  discussionId: string,
+): Promise<ConsensusArtifact | null> {
+  try {
+    return await fetchJson(`/api/discussions/${discussionId}/consensus`);
+  } catch {
+    return null;
+  }
+}
+
+export async function listDiscussions(
+  matchId: string,
+): Promise<DiscussionListItem[]> {
+  return fetchJson(`/api/matches/${matchId}/discussions`);
 }
 
 export async function startDiscussion(

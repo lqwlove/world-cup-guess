@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 from typing import Any, Optional
+from uuid import UUID
 
 import jsonschema
 from sqlalchemy import desc, select
@@ -19,6 +20,25 @@ def validate_consensus_artifact(data: dict[str, Any]) -> tuple[bool, Optional[st
         return True, None
     except jsonschema.ValidationError as e:
         return False, str(e.message)
+
+
+async def get_consensus_for_discussion(
+    session: AsyncSession, discussion_id: UUID
+) -> Optional[ConsensusArtifactOut]:
+    result = await session.execute(
+        select(ConsensusArtifact).where(ConsensusArtifact.discussion_id == discussion_id)
+    )
+    row = result.scalar_one_or_none()
+    if not row:
+        return None
+    return ConsensusArtifactOut(
+        match_id=row.match_id,
+        discussion_id=str(row.discussion_id),
+        schema_version=row.schema_version,
+        strength=row.strength,
+        artifact=row.json_data,
+        created_at=row.created_at,
+    )
 
 
 async def get_latest_consensus(

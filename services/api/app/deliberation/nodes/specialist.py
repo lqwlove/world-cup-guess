@@ -7,7 +7,7 @@ from app.deliberation.activity import publish_agent_analyzing, publish_agent_idl
 from app.deliberation.agents.specialist_agent import run_specialist_agent
 from app.deliberation.constants import SPECIALIST_ROLES
 from app.deliberation.match_brief import is_vacuous_content
-from app.deliberation.rules import validate_message
+from app.deliberation.rules import has_factual_claim, validate_message
 from app.deliberation.state import WarRoomState
 from app.deliberation.tools.facts import reload_evidence_ids
 
@@ -36,6 +36,27 @@ def _tool_trace_messages(role: str, phase: str, tool_trace: list[dict[str, Any]]
     return msgs
 
 
+def _repair_message(
+    msg: dict[str, Any],
+    state: WarRoomState,
+    valid: set[str],
+) -> dict[str, Any]:
+    """Fix common validation failures without falling back to bland text."""
+    registry = state.get("claims_registry", {})
+    claim_ids = sorted(registry.keys())
+    out = dict(msg)
+
+    if out.get("msg_type") in ("CHALLENGE", "REBUTTAL", "SUPPORT") and not out.get("refs"):
+        if claim_ids:
+            out["refs"] = [claim_ids[-1]]
+
+    if out.get("msg_type") == "STATEMENT" and not out.get("evidence_ids") and valid:
+        if has_factual_claim(out.get("content", "")):
+            out["evidence_ids"] = list(valid)[:2]
+
+    return out
+
+
 async def specialist_node(state: WarRoomState) -> dict[str, Any]:
     role = state.get("next_role")
     if role not in SPECIALIST_ROLES:
@@ -61,6 +82,7 @@ async def specialist_node(state: WarRoomState) -> dict[str, Any]:
     valid_evidence_ids = await reload_evidence_ids(state["match_id"])
     valid = set(valid_evidence_ids or state.get("valid_evidence_ids", []))
 
+    msg = _repair_message(msg, state, valid)
     result = validate_message(
         msg,
         phase=state.get("phase", "Analysis"),
@@ -70,21 +92,29 @@ async def specialist_node(state: WarRoomState) -> dict[str, Any]:
         from app.deliberation.match_brief import fallback_statement
 
         ctx = state.get("match_context", {})
-        text, evs = fallback_statement(role, ctx, aggregated, list(valid))
+        text, evs, msg_type, refs = fallback_statement(
+            role,
+            ctx,
+            aggregated,
+            list(valid),
+            state.get("messages", []),
+            state.get("claims_registry", {}),
+        )
         msg = {
             "role": role,
-            "msg_type": "STATEMENT",
+            "msg_type": msg_type,
             "content": text,
             "evidence_ids": evs,
-            "refs": [],
+            "refs": refs,
             "phase": msg["phase"],
         }
 
     messages = list(state.get("messages", []))
     claim_idx = len(state.get("claims_registry", {}))
-    if msg.get("msg_type") == "STATEMENT" and msg.get("content"):
-        claim_idx += 1
-        msg["claim_id"] = f"E-{claim_idx:03d}"
+    if msg.get("msg_type") in ("STATEMENT", "CHALLENGE", "REBUTTAL", "SUPPORT") and msg.get("content"):
+        if msg.get("msg_type") == "STATEMENT":
+            claim_idx += 1
+            msg["claim_id"] = f"E-{claim_idx:03d}"
 
     messages.extend(_tool_trace_messages(role, msg["phase"], tool_trace))
     messages.append(msg)

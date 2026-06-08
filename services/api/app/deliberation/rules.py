@@ -49,9 +49,13 @@ def validate_message(
     return RuleResult(True)
 
 
-def _has_factual_claim(content: str) -> bool:
+def has_factual_claim(content: str) -> bool:
     markers = ["EV-", "胜", "负", "进球", "战绩", "Elo", "elo", "W", "L", "D"]
     return any(m in content for m in markers)
+
+
+def _has_factual_claim(content: str) -> bool:
+    return has_factual_claim(content)
 
 
 def count_votes(votes: list[dict[str, Any]]) -> dict[str, Any]:

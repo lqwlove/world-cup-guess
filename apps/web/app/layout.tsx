@@ -16,7 +16,7 @@ export default function RootLayout({
     <html lang="zh-CN">
       <body className="flex min-h-screen flex-col">
         <header className="border-b border-pitch-700 bg-pitch-800/80 px-4 py-4 backdrop-blur">
-          <div className="mx-auto flex max-w-5xl items-center justify-between">
+          <div className="mx-auto flex max-w-6xl items-center justify-between">
             <a href="/" className="text-lg font-bold text-gold-400">
               世界杯 AI 战术室
             </a>
@@ -25,7 +25,7 @@ export default function RootLayout({
             </span>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
           {children}
         </main>
         <DisclaimerFooter />

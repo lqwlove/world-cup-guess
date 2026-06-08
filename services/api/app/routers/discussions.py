@@ -11,19 +11,23 @@ from sse_starlette.sse import EventSourceResponse
 from app.config import get_settings
 from app.db import get_session
 from app.models.entities import Discussion, Match
+from app.schemas.consensus import ConsensusArtifactOut
 from app.schemas.discussion import (
     DiscussionCreate,
+    DiscussionListItem,
     DiscussionOut,
     FollowupChat,
     MessageOut,
     ResumeDiscussion,
 )
 from app.services.arq_jobs import enqueue_arq_job
+from app.services.consensus_service import get_consensus_for_discussion
 from app.services.discussion_service import (
     clear_discussion_run,
     create_discussion,
     get_latest_discussion,
     get_messages,
+    list_discussions_for_match,
     prepare_followup_chat,
     prepare_resume_discussion,
     run_deliberation,
@@ -78,6 +82,17 @@ async def retry_discussion(
     return _to_out(discussion)
 
 
+@router.get("/matches/{match_id}/discussions", response_model=list[DiscussionListItem])
+async def list_match_discussions(
+    match_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    if not await session.get(Match, match_id):
+        raise HTTPException(404, "Match not found")
+    rows = await list_discussions_for_match(session, match_id)
+    return [DiscussionListItem(**row) for row in rows]
+
+
 @router.get("/matches/{match_id}/discussions/latest", response_model=DiscussionOut)
 async def latest_match_discussion(
     match_id: str,
@@ -100,6 +115,19 @@ async def get_discussion(
     if not discussion:
         raise HTTPException(404, "Discussion not found")
     return _to_out(discussion)
+
+
+@router.get("/discussions/{discussion_id}/consensus", response_model=ConsensusArtifactOut)
+async def get_discussion_consensus(
+    discussion_id: UUID,
+    session: AsyncSession = Depends(get_session),
+):
+    if not await session.get(Discussion, discussion_id):
+        raise HTTPException(404, "Discussion not found")
+    consensus = await get_consensus_for_discussion(session, discussion_id)
+    if not consensus:
+        raise HTTPException(404, "No consensus for this discussion")
+    return consensus
 
 
 @router.get("/discussions/{discussion_id}/messages", response_model=list[MessageOut])

@@ -65,7 +65,7 @@ def format_match_brief(ctx: dict[str, Any]) -> str:
 
 def format_facts_for_prompt(facts: list[dict[str, Any]]) -> str:
     if not facts:
-        return "（工具未返回结构化事实，可基于赛会经验做谨慎推断，勿索要基础信息。）"
+        return "（工具未返回结构化事实，可基于大赛经验做有依据推断并亮明倾向，勿索要基础信息。）"
 
     lines: list[str] = []
     type_zh = {
@@ -111,69 +111,126 @@ def is_vacuous_content(content: str) -> bool:
     return hits >= 2 or (hits >= 1 and len(content) < 120)
 
 
+def is_neutral_content(content: str) -> bool:
+    """Detect hedge/neutral phrasing that should be rewritten."""
+    if not content:
+        return False
+    neutral_markers = (
+        "双方各有",
+        "各有优劣",
+        "难分高下",
+        "不好判断",
+        "谨慎观望",
+        "尚需观察",
+        "保持中性",
+        "都有可能",
+        "说不准",
+        "不宜贸然",
+        "相对均衡",
+        "差距不大",
+        "拭目以待",
+    )
+    return any(m in content for m in neutral_markers)
+
+
+def _last_claim_ref(registry: dict[str, str]) -> list[str]:
+    if not registry:
+        return []
+    keys = sorted(registry.keys())
+    return [keys[-1]] if keys else []
+
+
 def fallback_statement(
     role: str,
     ctx: dict[str, Any],
     tool_result: dict[str, Any],
     valid_evidence_ids: list[str],
-) -> tuple[str, list[str]]:
+    messages: list[dict[str, Any]] | None = None,
+    claims_registry: dict[str, str] | None = None,
+) -> tuple[str, list[str], str, list[str]]:
     home = ctx.get("home_team", "主队")
     away = ctx.get("away_team", "客队")
     facts = tool_result.get("facts") or []
     evs = [f["evidence_id"] for f in facts if f.get("evidence_id")]
     if not evs:
         evs = valid_evidence_ids[:2]
+    registry = claims_registry or {}
+    refs = _last_claim_ref(registry)
+    has_prior = bool(registry)
+    msg_type = "STATEMENT"
+    refs_out: list[str] = []
 
     if role == "data":
         if facts:
             lines = [format_facts_for_prompt(facts)]
-            text = f"数据面：{home} vs {away}。工具拉取：\n{lines[0][:400]}"
+            text = (
+                f"我倾向【{home}不败】：数据面 {home} vs {away}，"
+                f"近况与交锋支持主队控场；客队在高压下进球效率存疑。\n{lines[0][:280]}"
+            )
         else:
             text = (
-                f"数据面：{home} vs {away}（{ctx.get('stage_zh', '世界杯')}）。"
-                f"赛前结构化战绩暂未入库，但大赛层面 {home} 近年大赛稳定性通常略优于 {away}；"
-                f"需结合首场临场节奏，警惕低比分胶着。"
+                f"我押【{home}小胜】：大赛经验与阵容厚度上 {home} 明显占优，"
+                f"{away} 首战更可能守势，但破密集防守效率决定是 1-0 还是 2-1。"
             )
-        return text, evs
+        return text, evs, msg_type, refs_out
 
     if role == "squad":
         if facts:
-            text = f"阵容面：{format_facts_for_prompt(facts)[:350]}"
+            text = (
+                f"阵容上我看好【{home}】：关键对位与替补深度占优。"
+                f"{format_facts_for_prompt(facts)[:280]}"
+            )
         else:
             text = (
-                f"阵容面：{home} 主力多效力于欧洲主流联赛与墨超，{away} 更依赖本土联赛体系；"
-                f"世界杯正赛节奏下，{home} 替补深度通常更占优。"
+                f"我站【{home}】：主力多在欧洲/墨超体系，轮换质量高于 {away}；"
+                f"若 {away} 核心中场受限，下半场体能会是致命短板。"
             )
-        return text, evs
+        return text, evs, msg_type, refs_out
 
     if role == "market":
         probs = tool_result.get("probabilities") or ctx.get("market_snapshot") or {}
         if probs:
+            h, d, a = probs.get("home", 0), probs.get("draw", 0), probs.get("away", 0)
+            lean = home if h >= max(d, a) else (away if a >= d else "平局")
             text = (
-                f"市场面：隐含概率 主{probs.get('home', 0)*100:.0f}% / "
-                f"平{probs.get('draw', 0)*100:.0f}% / 客{probs.get('away', 0)*100:.0f}%。"
+                f"市场隐含 主{h*100:.0f}%/平{d*100:.0f}%/客{a*100:.0f}%，"
+                f"我认为市场对【{lean}】定价{'偏保守' if lean == home else '有偏差'}——"
+                f"基本面与赔率存在可博弈空间。"
             )
         else:
-            text = f"市场面：本场暂无 Polymarket 映射，合议以基本面为主，勿编造赔率。"
-        return text, []
+            text = (
+                f"暂无 Polymarket 映射，但我仍倾向【{home}】："
+                f"名气与大赛履历已被市场习惯性高估客队爆冷概率。"
+            )
+        return text, [], msg_type, refs_out
 
     if role == "skeptic":
-        return (
-            f"风控：{away} 若早段守住节奏，{home} 破密集防守效率可能被高估；"
-            f"勿因大赛名气单边押注主胜。",
-            [],
+        msg_type = "CHALLENGE" if has_prior else "STATEMENT"
+        refs_out = refs if has_prior else []
+        text = (
+            f"我反对一边倒看好【{home}】：{away} 若收缩防线+快速转换，"
+            f"{home} 进攻效率可能被高估；冷门比分 0-0/1-1 不应被忽视。"
         )
+        return text, [], msg_type, refs_out
 
     if role == "handicap":
-        return (
-            f"让球：{home} 让0.5球附近与实力差大致吻合；若临场升盘过热需防走盘或下盘。",
-            [],
+        if has_prior:
+            msg_type = "REBUTTAL"
+            refs_out = refs
+        text = (
+            f"盘口我选【{home} -0.5 上盘】：实力差支撑让半球，"
+            f"但若风控说的胶着成立，走盘风险集中在 1-0 小胜。"
         )
+        return text, [], msg_type, refs_out
 
     if role == "scoreline":
-        return (
-            f"比分：{home} 小胜或平局概率集中，参考 1-0、1-1、2-1 区间；大开大合概率相对偏低。",
-            [],
+        if has_prior:
+            msg_type = "SUPPORT"
+            refs_out = refs[:1]
+        text = (
+            f"比分我押【2-1、1-0】优先，次选【1-1】：{home} 控场但未必大胜，"
+            f"{away} 有反击偷一个球的空间。"
         )
+        return text, [], msg_type, refs_out
 
-    return (f"{home} vs {away}：继续基于已有讨论推进。", [])
+    return (f"{home} vs {away}：我倾向主队方向，继续辩论。", [], "STATEMENT", [])

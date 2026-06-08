@@ -41,7 +41,13 @@ export interface Discussion {
   mode?: string;
   phase: string;
   round: number;
-  error_reason?: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+  error_reason?: string | null;
+}
+
+export interface DiscussionListItem extends Discussion {
+  message_count: number;
 }
 
 export interface ConsensusArtifact {

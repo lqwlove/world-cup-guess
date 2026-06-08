@@ -10,7 +10,28 @@ from app.deliberation.state import WarRoomState
 
 settings = get_settings()
 
-_ANALYSIS_ORDER = ["data", "squad", "market", "skeptic", "handicap", "scoreline"]
+_OPENING_ORDER = ["data", "squad", "market", "skeptic", "handicap", "scoreline"]
+# 首轮 6 人陈述后，再安排交叉质询（鼓励质疑与反驳）
+_CROSS_EXAM_ORDER = ["skeptic", "market", "handicap", "scoreline"]
+_ANALYSIS_ORDER = _OPENING_ORDER  # alias
+
+
+def _role_speech_count(messages: list[dict[str, Any]], role: str) -> int:
+    return sum(
+        1
+        for m in messages
+        if m.get("role") == role and m.get("msg_type") not in ("TOOL_CALL",)
+    )
+
+
+def _pick_next_role(messages: list[dict[str, Any]]) -> str | None:
+    for role in _OPENING_ORDER:
+        if _role_speech_count(messages, role) < 1:
+            return role
+    for role in _CROSS_EXAM_ORDER:
+        if _role_speech_count(messages, role) < 2:
+            return role
+    return None
 
 
 def _roles_spoken(messages: list[dict[str, Any]]) -> set[str]:
@@ -59,22 +80,22 @@ def _mock_supervisor(state: WarRoomState) -> dict[str, Any]:
             "awaiting_user": False,
         }
 
-    missing = [r for r in _ANALYSIS_ORDER if r not in spoken]
-    if missing:
-        role = missing[0]
+    next_role = _pick_next_role(messages)
+    if next_role:
+        opening_done = all(_role_speech_count(messages, r) >= 1 for r in _OPENING_ORDER)
+        phase_label = "交叉质询" if opening_done else "开场陈述"
         return {
             "supervisor_action": "call_agent",
-            "next_role": role,
-            "supervisor_reason": f"首轮分析，请{ROLE_LABELS.get(role, role)}发言",
+            "next_role": next_role,
+            "supervisor_reason": f"{phase_label}，请{ROLE_LABELS.get(next_role, next_role)}发言",
             "pending_user_question": None,
             "awaiting_user": False,
         }
 
-    # 首轮 6 专家各发言一次后直接进入总结，不向用户索要玩法偏好
     return {
         "supervisor_action": "finish",
         "next_role": None,
-        "supervisor_reason": "各专家已发言，进入总结",
+        "supervisor_reason": "陈述与交叉质询已完成，进入总结",
         "pending_user_question": None,
         "awaiting_user": False,
     }
@@ -116,9 +137,10 @@ async def _llm_supervisor(state: WarRoomState) -> dict[str, Any]:
 
 规则：
 - 这是 2026 世界杯正赛，禁止因「缺少赛事属性/名单」反复调度同一专家
-- analysis 模式：优先让未发言的专家各陈述一次；6 人都发言后优先 finish
-- 仅当用户主动需要选择玩法方向时才 ask_user，勿为索要基础赛况问用户
-- 勿连续两轮调度同一专家，除非回应具体质疑
+- analysis 模式：先让 data→squad→market→skeptic→handicap→scoreline 各开场陈述一次；
+  然后安排 skeptic→market→handicap→scoreline 交叉质询第二轮（鼓励 CHALLENGE/REBUTTAL）
+- 两轮都完成后再 finish；战术室需要观点碰撞，不要过早结束
+- 仅当用户主动需要选择玩法方向时才 ask_user
 - followup 模式：根据用户问题路由到最相关专家（next_role 必填）
 - finish 时 next_role 为 null
 """
@@ -155,10 +177,19 @@ async def supervisor_node(state: WarRoomState) -> dict[str, Any]:
         }
     )
 
+    messages = state.get("messages", [])
+    opening_done = all(_role_speech_count(messages, r) >= 1 for r in _OPENING_ORDER)
+    if state.get("mode") == "followup":
+        phase = "FollowUp"
+    elif opening_done and decision.get("next_role") in _CROSS_EXAM_ORDER:
+        phase = "CrossExam"
+    else:
+        phase = "Analysis"
+
     updates: dict[str, Any] = {
         **decision,
         "supervisor_trace": trace,
-        "phase": "FollowUp" if state.get("mode") == "followup" else "Analysis",
+        "phase": phase,
         "resume_to_supervisor": False,
     }
 

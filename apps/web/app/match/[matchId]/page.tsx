@@ -1,24 +1,15 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { MatchDataPanel } from "@/components/match-data/MatchDataPanel";
-import { WarRoomPanel } from "@/components/war-room/WarRoomPanel";
-import { getConsensus, getFacts, getMarket, getMatch } from "@/lib/api";
-import { formatDateTime } from "@/lib/formatDateTime";
-import { stageLabel } from "@/lib/stageLabels";
+import { notFound } from "next/navigation";
+import { AnalysisListPanel } from "@/components/match/AnalysisListPanel";
+import { MatchHeader } from "@/components/match/MatchHeader";
+import { getMatch, listDiscussions } from "@/lib/api";
 
-export default async function MatchPage({
+export default async function MatchAnalysisListPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ matchId: string }>;
-  searchParams: Promise<{ tab?: string }>;
 }) {
   const { matchId } = await params;
-  const { tab: tabParam = "war-room" } = await searchParams;
-  if (tabParam === "market") {
-    redirect(`/match/${matchId}?tab=war-room`);
-  }
-  const tab = tabParam;
 
   let match;
   try {
@@ -27,62 +18,22 @@ export default async function MatchPage({
     notFound();
   }
 
-  const [factsBundle, market, consensus] = await Promise.all([
-    getFacts(matchId).catch(() => ({ match_id: matchId, data_version: "v1", facts: [] })),
-    getMarket(matchId).catch(() => ({ available: false })),
-    getConsensus(matchId).catch(() => null),
-  ]);
-
-  const tabs = [
-    { id: "war-room", label: "AI 战术室" },
-    { id: "data", label: "数据概览" },
-  ];
+  const discussions = await listDiscussions(matchId).catch(() => []);
 
   return (
-    <div>
-      <Link href="/" className="mb-4 inline-block text-sm text-pitch-400 hover:underline">
-        ← 返回赛程
-      </Link>
-      <h1 className="text-2xl font-bold">
-        {match.home_flag} {match.home_team}{" "}
-        <span className="text-slate-400">vs</span> {match.away_flag} {match.away_team}
-      </h1>
-      <p className="mt-1 text-sm text-slate-400">
-        {formatDateTime(match.kickoff_at)} 北京时间 · {stageLabel(match.stage)}
-        {match.group_code ? ` · ${match.group_code} 组` : ""}
-      </p>
-
-      <nav className="mt-6 flex gap-2 border-b border-pitch-700">
-        {tabs.map((t) => (
+    <div className="space-y-6">
+      <MatchHeader
+        match={match}
+        extra={
           <Link
-            key={t.id}
-            href={`/match/${matchId}?tab=${t.id}`}
-            className={`border-b-2 px-4 py-2 text-sm ${
-              tab === t.id
-                ? "border-pitch-400 text-pitch-400"
-                : "border-transparent text-slate-400 hover:text-slate-200"
-            }`}
+            href={`/match/${matchId}/data`}
+            className="shrink-0 rounded-lg border border-pitch-600 px-3 py-1.5 text-xs text-slate-400 transition hover:border-pitch-500 hover:text-slate-200"
           >
-            {t.label}
+            数据概览
           </Link>
-        ))}
-      </nav>
-
-      <div className="mt-6">
-        {tab === "war-room" && (
-          <WarRoomPanel
-            matchId={matchId}
-            initialConsensus={consensus}
-            initialMarket={market}
-            deliberationStatus={match.deliberation_status}
-            initialDiscussionId={match.latest_discussion_id}
-            deliberationError={match.deliberation_error}
-          />
-        )}
-        {tab === "data" && (
-          <MatchDataPanel facts={factsBundle.facts} dataVersion={factsBundle.data_version} />
-        )}
-      </div>
+        }
+      />
+      <AnalysisListPanel matchId={matchId} initialDiscussions={discussions} />
     </div>
   );
 }

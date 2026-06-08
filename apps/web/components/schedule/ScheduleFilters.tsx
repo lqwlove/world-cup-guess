@@ -14,9 +14,9 @@ export function ScheduleFilters() {
   };
 
   return (
-    <div className="flex flex-wrap gap-3">
+    <div className="flex flex-wrap gap-3 rounded-xl border border-pitch-700/60 bg-pitch-800/40 p-3">
       <select
-        className="rounded-lg border border-pitch-700 bg-pitch-800 px-3 py-2 text-sm"
+        className="rounded-lg border border-pitch-700 bg-pitch-900/80 px-3 py-2 text-sm text-slate-200 focus:border-pitch-500 focus:outline-none"
         value={search.get("stage") || ""}
         onChange={(e) => update("stage", e.target.value)}
       >
@@ -30,7 +30,7 @@ export function ScheduleFilters() {
         <option value="final">决赛</option>
       </select>
       <select
-        className="rounded-lg border border-pitch-700 bg-pitch-800 px-3 py-2 text-sm"
+        className="rounded-lg border border-pitch-700 bg-pitch-900/80 px-3 py-2 text-sm text-slate-200 focus:border-pitch-500 focus:outline-none"
         value={search.get("group") || ""}
         onChange={(e) => update("group", e.target.value)}
       >
@@ -43,7 +43,7 @@ export function ScheduleFilters() {
       </select>
       <input
         type="date"
-        className="rounded-lg border border-pitch-700 bg-pitch-800 px-3 py-2 text-sm"
+        className="rounded-lg border border-pitch-700 bg-pitch-900/80 px-3 py-2 text-sm text-slate-200 focus:border-pitch-500 focus:outline-none"
         value={search.get("date") || ""}
         onChange={(e) => update("date", e.target.value)}
       />
