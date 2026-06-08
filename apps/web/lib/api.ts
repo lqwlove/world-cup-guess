@@ -79,11 +79,30 @@ export async function listDiscussions(
 export async function startDiscussion(
   matchId: string,
   forceRefresh = false,
+  autoStart = true,
 ): Promise<Discussion> {
   return fetchJson(`/api/matches/${matchId}/discussions`, {
     method: "POST",
-    body: JSON.stringify({ force_refresh: forceRefresh }),
+    body: JSON.stringify({ force_refresh: forceRefresh, auto_start: autoStart }),
   });
+}
+
+export async function createDiscussionDraft(
+  matchId: string,
+): Promise<Discussion> {
+  return startDiscussion(matchId, true, false);
+}
+
+export async function runDiscussionAnalysis(
+  discussionId: string,
+): Promise<Discussion> {
+  return fetchJson(`/api/discussions/${discussionId}/start`, { method: "POST" });
+}
+
+export async function stopDiscussionAnalysis(
+  discussionId: string,
+): Promise<Discussion> {
+  return fetchJson(`/api/discussions/${discussionId}/stop`, { method: "POST" });
 }
 
 export async function getDiscussion(id: string): Promise<Discussion> {

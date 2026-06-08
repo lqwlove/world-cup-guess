@@ -48,13 +48,14 @@ async def create_discussion(
     match_id: str,
     *,
     force_refresh: bool = False,
+    auto_start: bool = True,
 ) -> Discussion:
     match = await session.get(Match, match_id)
     if not match:
         raise ValueError(f"Match {match_id} not found")
 
     key = cache_key(match_id, match.data_version)
-    if not force_refresh:
+    if auto_start and not force_refresh:
         result = await session.execute(
             select(Discussion).where(
                 Discussion.match_id == match_id,
@@ -68,7 +69,7 @@ async def create_discussion(
 
     discussion = Discussion(
         match_id=match_id,
-        status="pending",
+        status="pending" if auto_start else "draft",
         mode="analysis",
         phase="Analysis",
         round=0,
@@ -293,6 +294,9 @@ async def _run_graph_stream(
     final_state: dict[str, Any] = {}
     async for state in graph.astream(graph_input, config, stream_mode="values"):
         final_state = state
+        discussion = await session.get(Discussion, discussion_id)
+        if not discussion or discussion.status == "cancelled":
+            break
         await _sync_discussion_row(session, discussion, state)
 
     return final_state
@@ -301,6 +305,8 @@ async def _run_graph_stream(
 async def run_deliberation(session: AsyncSession, discussion_id: UUID) -> None:
     discussion = await session.get(Discussion, discussion_id)
     if not discussion:
+        return
+    if discussion.status in ("cancelled", "completed"):
         return
 
     match = await session.get(Match, discussion.match_id)
@@ -324,6 +330,18 @@ async def run_deliberation(session: AsyncSession, discussion_id: UUID) -> None:
         if not discussion:
             return
 
+        if discussion.status == "cancelled":
+            await publish_discussion_event(
+                str(discussion_id),
+                {
+                    "type": "status",
+                    "status": "cancelled",
+                    "phase": discussion.phase,
+                    "round": discussion.round,
+                },
+            )
+            return
+
         if final_state.get("status") == "completed":
             await _finalize_artifact(session, discussion, discussion_id, final_state)
             discussion.finished_at = datetime.utcnow()
@@ -345,6 +363,9 @@ async def run_deliberation(session: AsyncSession, discussion_id: UUID) -> None:
             },
         )
     except Exception as e:
+        discussion = await session.get(Discussion, discussion_id)
+        if not discussion or discussion.status == "cancelled":
+            return
         discussion.status = "failed"
         discussion.error_reason = str(e)
         discussion.finished_at = datetime.utcnow()
@@ -353,6 +374,65 @@ async def run_deliberation(session: AsyncSession, discussion_id: UUID) -> None:
             str(discussion_id),
             {"type": "error", "message": str(e)},
         )
+
+
+async def start_discussion_run(
+    session: AsyncSession, discussion_id: UUID
+) -> Discussion:
+    discussion = await session.get(Discussion, discussion_id)
+    if not discussion:
+        raise ValueError("Discussion not found")
+    if discussion.status in ("running", "pending"):
+        return discussion
+    if discussion.status == "completed":
+        raise ValueError("Discussion already completed")
+    if discussion.status not in ("draft", "failed", "cancelled", "partial"):
+        raise ValueError(f"Cannot start discussion in status {discussion.status}")
+
+    if discussion.status in ("cancelled", "failed"):
+        await clear_discussion_run(session, discussion_id)
+        discussion = await session.get(Discussion, discussion_id)
+        if not discussion:
+            raise ValueError("Discussion not found")
+        discussion.started_at = None
+        discussion.round = 0
+        discussion.phase = "Analysis"
+
+    discussion.status = "pending"
+    discussion.error_reason = None
+    discussion.finished_at = None
+    if not discussion.started_at:
+        discussion.phase = "Analysis"
+        discussion.round = 0
+    await session.commit()
+    await session.refresh(discussion)
+    return discussion
+
+
+async def stop_discussion_run(
+    session: AsyncSession, discussion_id: UUID
+) -> Discussion:
+    discussion = await session.get(Discussion, discussion_id)
+    if not discussion:
+        raise ValueError("Discussion not found")
+    if discussion.status not in ("running", "pending"):
+        raise ValueError("Discussion is not running")
+
+    discussion.status = "cancelled"
+    discussion.error_reason = None
+    discussion.finished_at = datetime.utcnow()
+    await session.commit()
+    await session.refresh(discussion)
+    await publish_discussion_event(
+        str(discussion_id),
+        {
+            "type": "status",
+            "status": "cancelled",
+            "phase": discussion.phase,
+            "round": discussion.round,
+        },
+    )
+    return discussion
 
 
 async def prepare_resume_discussion(

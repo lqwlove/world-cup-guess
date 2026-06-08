@@ -8,6 +8,8 @@ import {
   followupChat,
   resumeDiscussion,
   retryDiscussion,
+  runDiscussionAnalysis,
+  stopDiscussionAnalysis,
   streamDiscussion,
   submitFeedback,
   getSessionId,
@@ -25,8 +27,9 @@ import { PlaysRecommendation } from "./ConsensusCertificate";
 import { MarketEdgeTable } from "./MarketEdgeTable";
 import { MinorityOpinions } from "./MinorityOpinions";
 
-const TERMINAL = new Set(["completed", "partial", "failed"]);
-const ACTIVE = new Set(["running", "pending", "awaiting_user"]);
+const TERMINAL = new Set(["completed", "partial", "failed", "cancelled"]);
+const WATCHABLE = new Set(["running", "pending", "awaiting_user"]);
+const STARTABLE = new Set(["draft", "failed", "cancelled", "partial"]);
 
 export function WarRoomPanel({
   matchId,
@@ -45,9 +48,10 @@ export function WarRoomPanel({
   const [discussion, setDiscussion] = useState<Discussion>(initialDiscussion);
   const [messages, setMessages] = useState<DiscussionMessage[]>([]);
   const [loading, setLoading] = useState(false);
+  const [stopping, setStopping] = useState(false);
   const [isLive, setIsLive] = useState(false);
   const [error, setError] = useState<string | null>(
-    initialDiscussion.error_reason || null,
+    initialDiscussion.status === "failed" ? initialDiscussion.error_reason || null : null,
   );
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [userInput, setUserInput] = useState("");
@@ -98,9 +102,14 @@ export function WarRoomPanel({
       if (TERMINAL.has(disc.status) || disc.status === "awaiting_user") {
         stopLive();
         await loadMessages();
-        if (disc.status !== "failed" && disc.status !== "awaiting_user") {
+        if (disc.status === "completed" || disc.status === "partial") {
           await loadConsensus();
         }
+        return;
+      }
+
+      if (!WATCHABLE.has(disc.status)) {
+        stopLive();
         return;
       }
 
@@ -116,12 +125,12 @@ export function WarRoomPanel({
             stopLive();
             if (d.status === "failed") {
               setError(d.error_reason || "合议生成失败");
-            } else if (d.status !== "awaiting_user") {
+            } else if (d.status === "completed" || d.status === "partial") {
               await loadConsensus();
             }
           }
         } catch {
-          /* ignore poll errors */
+          /* ignore */
         }
       };
 
@@ -165,9 +174,13 @@ export function WarRoomPanel({
           } else if (e.type === "message" && e.msg_type) {
             clearAgentActivity();
           }
+          if (d.status === "cancelled") {
+            stopLive();
+            return;
+          }
           if (TERMINAL.has(d.status) || d.status === "awaiting_user") {
             stopLive();
-            if (d.status !== "failed" && d.status !== "awaiting_user") {
+            if (d.status === "completed" || d.status === "partial") {
               await loadConsensus();
             }
           }
@@ -184,12 +197,42 @@ export function WarRoomPanel({
     [clearAgentActivity, discussionId, loadConsensus, loadMessages, stopLive],
   );
 
+  const handleStart = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const disc = await runDiscussionAnalysis(discussionId);
+      setDiscussion(disc);
+      await watchDiscussion(disc);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "启动失败");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStop = async () => {
+    setStopping(true);
+    setError(null);
+    try {
+      const disc = await stopDiscussionAnalysis(discussionId);
+      setDiscussion(disc);
+      stopLive();
+      await loadMessages();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "停止失败");
+    } finally {
+      setStopping(false);
+    }
+  };
+
   const handleRetry = async () => {
     setLoading(true);
     setError(null);
     try {
       const disc = await retryDiscussion(discussionId);
       setConsensus(null);
+      setDiscussion(disc);
       await watchDiscussion(disc);
     } catch (e) {
       setError(e instanceof Error ? e.message : "重试失败");
@@ -203,7 +246,7 @@ export function WarRoomPanel({
     let cancelled = false;
     const boot = async () => {
       await loadMessages();
-      if (!cancelled && ACTIVE.has(initialDiscussion.status)) {
+      if (!cancelled && WATCHABLE.has(initialDiscussion.status)) {
         await watchDiscussion(initialDiscussion);
       }
     };
@@ -212,15 +255,18 @@ export function WarRoomPanel({
       cancelled = true;
       stopLive();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- boot once per discussionId
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [discussionId]);
 
   const artifact = consensus?.artifact;
   const isProcessing =
     discussion.status === "running" || discussion.status === "pending";
+  const canStart = STARTABLE.has(discussion.status) && !isProcessing;
+  const canStop = isProcessing;
   const canUserInput =
     !isProcessing &&
     (discussion.status === "awaiting_user" || discussion.status === "completed");
+
   const inputPlaceholder = isProcessing
     ? "专家分析中，请稍候…"
     : discussion.status === "awaiting_user"
@@ -248,72 +294,107 @@ export function WarRoomPanel({
     }
   };
 
-  const showChat =
-    isLive ||
-    messages.length > 0 ||
-    ACTIVE.has(discussion.status);
-
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-bold">AI 战术室合议</h2>
-        <span className="text-xs text-slate-500">
-          调度官编排各专家；分析中可向你提问，完成后可继续追问
-        </span>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold text-slate-100">战术室合议</h2>
+          <p className="mt-0.5 text-xs text-slate-500">
+            调度官编排各专家，支持实时查看与中途停止
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {canStart && (
+            <button
+              type="button"
+              onClick={() => void handleStart()}
+              disabled={loading}
+              className="rounded-lg bg-pitch-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-pitch-400 disabled:opacity-50"
+            >
+              {loading ? "启动中…" : "开始分析"}
+            </button>
+          )}
+          {canStop && (
+            <button
+              type="button"
+              onClick={() => void handleStop()}
+              disabled={stopping}
+              className="rounded-lg border border-red-800/60 bg-red-950/40 px-4 py-2 text-sm font-medium text-red-300 transition hover:bg-red-900/40 disabled:opacity-50"
+            >
+              {stopping ? "停止中…" : "停止分析"}
+            </button>
+          )}
+        </div>
       </div>
 
       <MarketSnapshotStrip market={initialMarket} />
 
       <PhaseProgressBar phase={discussion.phase} round={discussion.round} />
 
-      {showChat && (
-        <div className="mb-4">
-          <ChatRoom
-            messages={messages}
-            isLive={isLive}
-            analyzingRole={analyzingRole}
-            liveToolCalls={liveToolCalls}
-            input={
-              canUserInput || isProcessing ? (
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={userInput}
-                    onChange={(e) => setUserInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && canUserInput) void handleUserSend();
-                    }}
-                    placeholder={inputPlaceholder}
-                    disabled={!canUserInput || sendingUser}
-                    className="min-w-0 flex-1 rounded-lg border border-pitch-600 bg-pitch-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-pitch-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => void handleUserSend()}
-                    disabled={!canUserInput || sendingUser || !userInput.trim()}
-                    className="shrink-0 rounded-lg bg-pitch-500 px-4 py-2 text-sm text-white hover:bg-pitch-400 disabled:opacity-50"
-                  >
-                    {sendingUser ? "提交中…" : isProcessing ? "分析中…" : "发送"}
-                  </button>
-                </div>
-              ) : undefined
-            }
-          />
-        </div>
+      <div className="mb-4">
+        <ChatRoom
+          messages={messages}
+          isLive={isLive}
+          analyzingRole={analyzingRole}
+          liveToolCalls={liveToolCalls}
+          emptyHint={
+            discussion.status === "draft" ? (
+              <div className="py-10 text-center">
+                <p className="text-slate-400">分析尚未开始</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  点击上方「开始分析」启动 AI 专家合议
+                </p>
+              </div>
+            ) : undefined
+          }
+          input={
+            canUserInput || isProcessing ? (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={userInput}
+                  onChange={(e) => setUserInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && canUserInput) void handleUserSend();
+                  }}
+                  placeholder={inputPlaceholder}
+                  disabled={!canUserInput || sendingUser}
+                  className="min-w-0 flex-1 rounded-lg border border-pitch-700 bg-pitch-900/80 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-pitch-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                />
+                <button
+                  type="button"
+                  onClick={() => void handleUserSend()}
+                  disabled={!canUserInput || sendingUser || !userInput.trim()}
+                  className="shrink-0 rounded-lg bg-pitch-500 px-4 py-2 text-sm text-white hover:bg-pitch-400 disabled:opacity-50"
+                >
+                  发送
+                </button>
+              </div>
+            ) : undefined
+          }
+        />
+      </div>
+
+      {discussion.status === "cancelled" && !error && (
+        <p className="mb-4 rounded-lg border border-pitch-700/60 bg-pitch-900/50 px-4 py-3 text-sm text-slate-400">
+          分析已手动停止。可点击「开始分析」重新运行。
+        </p>
       )}
 
       {error && (
         <div className="mb-4 rounded-lg border border-red-800/60 bg-red-950/30 px-4 py-3 text-sm text-red-300">
-          <p className="font-medium">合议未成功</p>
+          <p className="font-medium">提示</p>
           <p className="mt-1 text-red-200/80">{error}</p>
-          <button
-            type="button"
-            onClick={() => void handleRetry()}
-            disabled={loading}
-            className="mt-3 rounded-lg bg-red-600 px-4 py-1.5 text-sm text-white hover:bg-red-500 disabled:opacity-50"
-          >
-            {loading ? "重新生成中…" : "重新生成本次分析"}
-          </button>
+          {(discussion.status === "failed" || discussion.status === "cancelled") && (
+            <button
+              type="button"
+              onClick={() => void handleStart()}
+              disabled={loading}
+              className="mt-3 rounded-lg bg-pitch-600 px-4 py-1.5 text-sm text-white hover:bg-pitch-500 disabled:opacity-50"
+            >
+              {loading ? "启动中…" : "重新开始分析"}
+            </button>
+          )}
         </div>
       )}
 

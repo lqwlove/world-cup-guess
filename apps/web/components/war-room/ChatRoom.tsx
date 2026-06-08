@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { DiscussionMessage } from "@/lib/types";
 import {
   ROLE_LABELS,
@@ -22,55 +22,92 @@ export interface LiveToolCall {
   index?: number;
 }
 
-const ROLE_COLORS: Record<string, string> = {
-  moderator: "bg-gold-500/20 text-gold-300",
-  skeptic: "bg-red-500/15 text-red-300",
-  data: "bg-blue-500/15 text-blue-300",
-  market: "bg-purple-500/15 text-purple-300",
-  squad: "bg-emerald-500/15 text-emerald-300",
-  handicap: "bg-amber-500/15 text-amber-300",
-  scoreline: "bg-cyan-500/15 text-cyan-300",
-  supervisor: "bg-gold-500/20 text-gold-300",
-  user: "bg-slate-600/40 text-slate-100",
-  summarizer: "bg-green-500/15 text-green-300",
+const ROLE_AVATAR: Record<string, string> = {
+  data: "bg-sky-600/90 text-white",
+  squad: "bg-emerald-600/90 text-white",
+  market: "bg-violet-600/90 text-white",
+  skeptic: "bg-rose-600/90 text-white",
+  handicap: "bg-amber-600/90 text-white",
+  scoreline: "bg-cyan-600/90 text-white",
+  supervisor: "bg-yellow-600/90 text-white",
+  summarizer: "bg-green-700/90 text-white",
+  user: "bg-slate-500 text-white",
+};
+
+const ROLE_SHORT: Record<string, string> = {
+  data: "数",
+  squad: "阵",
+  market: "市",
+  skeptic: "风",
+  handicap: "盘",
+  scoreline: "分",
+  supervisor: "调",
+  summarizer: "总",
+  user: "我",
 };
 
 function scrollToMessage(seq: number) {
   document.getElementById(`msg-${seq}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
-function ToolCallCard({
+function RoleAvatar({ role }: { role: string }) {
+  return (
+    <div
+      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold shadow-sm ${
+        ROLE_AVATAR[role] || "bg-pitch-600 text-slate-200"
+      }`}
+      title={ROLE_LABELS[role] || role}
+    >
+      {ROLE_SHORT[role] || role.slice(0, 1).toUpperCase()}
+    </div>
+  );
+}
+
+function CollapsibleToolCall({
   tool,
   args,
   resultPreview,
-  compact,
+  defaultOpen = false,
 }: {
   tool: string;
   args?: Record<string, unknown>;
   resultPreview?: string;
-  compact?: boolean;
+  defaultOpen?: boolean;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
   const argKeys = args ? Object.keys(args).filter((k) => args[k] != null && args[k] !== "") : [];
+
   return (
-    <div
-      className={`rounded-md border border-pitch-600/80 bg-pitch-950/50 ${
-        compact ? "px-2 py-1.5" : "px-2.5 py-2"
-      }`}
-    >
-      <div className="flex items-center gap-1.5 text-xs text-slate-400">
-        <span className="text-pitch-400">⚙</span>
-        <span className="font-medium text-slate-300">{formatToolLabel(tool)}</span>
-        <span className="text-slate-600">({tool})</span>
-      </div>
-      {argKeys.length > 0 && (
-        <p className="mt-1 text-xs text-slate-500">
-          参数：{argKeys.map((k) => `${k}=${String(args![k]).slice(0, 60)}`).join("，")}
-        </p>
-      )}
-      {resultPreview && (
-        <p className="mt-1 line-clamp-3 font-mono text-[11px] leading-relaxed text-slate-500">
-          {resultPreview}
-        </p>
+    <div className="rounded-lg border border-pitch-700/50 bg-pitch-950/40">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-400 transition hover:bg-pitch-800/40"
+      >
+        <svg
+          className={`h-3.5 w-3.5 shrink-0 text-slate-500 transition ${open ? "rotate-90" : ""}`}
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path d="M6 4l8 6-8 6V4z" />
+        </svg>
+        <span className="text-slate-300">调用工具</span>
+        <span className="font-medium text-pitch-400">{formatToolLabel(tool)}</span>
+      </button>
+      {open && (
+        <div className="border-t border-pitch-800/80 px-3 py-2 text-xs">
+          <p className="text-slate-600">{tool}</p>
+          {argKeys.length > 0 && (
+            <p className="mt-1.5 text-slate-500">
+              参数：{argKeys.map((k) => `${k}=${String(args![k]).slice(0, 80)}`).join("，")}
+            </p>
+          )}
+          {resultPreview && (
+            <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-black/20 p-2 font-mono text-[11px] leading-relaxed text-slate-500">
+              {resultPreview}
+            </pre>
+          )}
+        </div>
       )}
     </div>
   );
@@ -83,34 +120,38 @@ function AnalyzingIndicator({
   role: string;
   liveToolCalls: LiveToolCall[];
 }) {
+  const [toolsOpen, setToolsOpen] = useState(false);
+
   return (
-    <div className="flex gap-2">
-      <div
-        className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
-          ROLE_COLORS[role] || "bg-pitch-700 text-slate-300"
-        }`}
-      >
-        {ROLE_LABELS[role] || role}
-      </div>
-      <div className="min-w-0 flex-1 rounded-lg border border-dashed border-pitch-600 bg-pitch-800/60 px-3 py-2">
-        <div className="mb-2 flex items-center gap-2 text-sm text-slate-300">
-          <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-pitch-500 border-t-transparent" />
-          正在分析…
+    <div className="flex items-start gap-3">
+      <RoleAvatar role={role} />
+      <div className="min-w-0 flex-1 rounded-2xl rounded-tl-md border border-pitch-700/60 bg-pitch-800/80 px-3.5 py-2.5">
+        <div className="flex items-center gap-2 text-sm text-slate-300">
+          <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-pitch-400/30 border-t-pitch-400" />
+          <span>{ROLE_LABELS[role] || role} 正在分析…</span>
         </div>
-        {liveToolCalls.length > 0 ? (
-          <div className="space-y-1.5">
-            {liveToolCalls.map((tc, i) => (
-              <ToolCallCard
-                key={`${tc.tool}-${tc.index ?? i}`}
-                tool={tc.tool}
-                args={tc.args}
-                resultPreview={tc.result_preview}
-                compact
-              />
-            ))}
+        {liveToolCalls.length > 0 && (
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={() => setToolsOpen((v) => !v)}
+              className="text-xs text-slate-500 hover:text-slate-400"
+            >
+              {toolsOpen ? "收起" : "展开"}工具调用（{liveToolCalls.length}）
+            </button>
+            {toolsOpen && (
+              <div className="mt-2 space-y-1.5">
+                {liveToolCalls.map((tc, i) => (
+                  <CollapsibleToolCall
+                    key={`${tc.tool}-${tc.index ?? i}`}
+                    tool={tc.tool}
+                    args={tc.args}
+                    resultPreview={tc.result_preview}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        ) : (
-          <p className="text-xs text-slate-500">正在调用工具获取数据…</p>
         )}
       </div>
     </div>
@@ -123,12 +164,14 @@ export function ChatRoom({
   analyzingRole,
   liveToolCalls = [],
   input,
+  emptyHint,
 }: {
   messages: DiscussionMessage[];
   isLive?: boolean;
   analyzingRole?: string | null;
   liveToolCalls?: LiveToolCall[];
   input?: ReactNode;
+  emptyHint?: ReactNode;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const claimIndex = useMemo(() => buildClaimIndex(messages), [messages]);
@@ -138,111 +181,94 @@ export function ChatRoom({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, isLive, showAnalyzing, liveToolCalls.length]);
 
-  if (messages.length === 0 && !isLive && !showAnalyzing) {
-    return (
-      <p className="rounded-lg border border-dashed border-pitch-600 p-4 text-center text-sm text-slate-500">
-        暂无讨论记录
-      </p>
-    );
-  }
+  const showEmpty = messages.length === 0 && !isLive && !showAnalyzing;
 
   return (
-    <div className="rounded-xl border border-pitch-700 bg-pitch-900/40">
-      <div className="flex items-center justify-between border-b border-pitch-700 px-3 py-2">
-        <span className="text-sm font-medium text-slate-300">战术室群聊</span>
+    <div className="overflow-hidden rounded-2xl border border-pitch-700/70 bg-pitch-900/30 shadow-sm">
+      <div className="flex items-center justify-between border-b border-pitch-800/80 px-4 py-3">
+        <span className="text-sm font-medium text-slate-200">战术室群聊</span>
         {isLive && (
-          <span className="flex items-center gap-1 text-xs text-amber-400">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-amber-400" />
-            合议进行中…
+          <span className="flex items-center gap-1.5 text-xs text-amber-400/90">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
+            进行中
           </span>
         )}
       </div>
-      <div className="max-h-[28rem] space-y-3 overflow-y-auto p-3">
+
+      <div className="max-h-[28rem] space-y-4 overflow-y-auto px-4 py-4">
+        {showEmpty && (
+          emptyHint || (
+            <p className="py-8 text-center text-sm text-slate-500">暂无讨论记录</p>
+          )
+        )}
+
         {messages.map((m) => {
           if (m.msg_type === "TOOL_CALL") {
             const tc = parseToolCallContent(m.content);
             if (!tc) return null;
             return (
-              <div key={m.seq} id={`msg-${m.seq}`} className="flex gap-2 pl-1">
-                <div
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium opacity-70 ${
-                    ROLE_COLORS[m.role] || "bg-pitch-700 text-slate-300"
-                  }`}
-                >
-                  {ROLE_LABELS[m.role] || m.role}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="mb-1 text-[11px] text-slate-600">{formatMsgTypeLabel(m.msg_type)}</p>
-                  <ToolCallCard
-                    tool={tc.tool}
-                    args={tc.args}
-                    resultPreview={tc.result_preview}
-                    compact
-                  />
-                </div>
+              <div key={m.seq} id={`msg-${m.seq}`} className="ml-12">
+                <CollapsibleToolCall
+                  tool={tc.tool}
+                  args={tc.args}
+                  resultPreview={tc.result_preview}
+                />
               </div>
             );
           }
 
           return (
-            <div key={m.seq} id={`msg-${m.seq}`} className="flex gap-2">
-              <div
-                className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
-                  ROLE_COLORS[m.role] || "bg-pitch-700 text-slate-300"
-                }`}
-              >
-                {ROLE_LABELS[m.role] || m.role}
-              </div>
-              <div className="min-w-0 flex-1 rounded-lg bg-pitch-800 px-3 py-2">
-                <div className="mb-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                  <span>{formatMsgTypeLabel(m.msg_type)}</span>
-                  {m.phase && <span>· {formatPhaseLabel(m.phase)}</span>}
-                  {m.refs?.map((r) => {
-                    const targetSeq = claimIdToMessageSeq(messages, r);
-                    const snippet = claimIndex[r];
-                    return (
-                      <button
-                        key={r}
-                        type="button"
-                        title={snippet ? `「${snippet}」` : "论点编号"}
-                        disabled={targetSeq == null}
-                        onClick={() => targetSeq != null && scrollToMessage(targetSeq)}
-                        className="text-gold-400 hover:underline disabled:cursor-default disabled:no-underline"
-                      >
-                        {formatRefLabel(r, claimIndex)}
-                      </button>
-                    );
-                  })}
+            <div key={m.seq} id={`msg-${m.seq}`} className="flex items-start gap-3">
+              <RoleAvatar role={m.role} />
+              <div className="min-w-0 flex-1">
+                <div className="mb-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  <span className="text-sm font-medium text-slate-200">
+                    {ROLE_LABELS[m.role] || m.role}
+                  </span>
+                  <span className="text-xs text-slate-500">
+                    {formatMsgTypeLabel(m.msg_type)}
+                    {m.phase ? ` · ${formatPhaseLabel(m.phase)}` : ""}
+                  </span>
                 </div>
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-100">
-                  {formatMessageContent(m)}
-                </p>
-                {m.evidence_ids?.length > 0 && (
-                  <p className="mt-1 text-xs text-slate-500">
-                    依据：{m.evidence_ids.map(formatEvidenceLabel).join("；")}
-                  </p>
-                )}
+                <div className="rounded-2xl rounded-tl-md bg-pitch-800/90 px-3.5 py-2.5 text-sm leading-relaxed text-slate-100 shadow-sm">
+                  <p className="whitespace-pre-wrap">{formatMessageContent(m)}</p>
+                  {m.refs?.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5 border-t border-pitch-700/50 pt-2">
+                      {m.refs.map((r) => {
+                        const targetSeq = claimIdToMessageSeq(messages, r);
+                        return (
+                          <button
+                            key={r}
+                            type="button"
+                            disabled={targetSeq == null}
+                            onClick={() => targetSeq != null && scrollToMessage(targetSeq)}
+                            className="rounded bg-pitch-900/60 px-1.5 py-0.5 text-xs text-gold-400/90 hover:underline disabled:cursor-default"
+                          >
+                            {formatRefLabel(r, claimIndex)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {m.evidence_ids?.length > 0 && (
+                    <p className="mt-2 border-t border-pitch-700/50 pt-2 text-xs text-slate-500">
+                      依据 {m.evidence_ids.map(formatEvidenceLabel).join(" · ")}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           );
         })}
+
         {showAnalyzing && analyzingRole && (
           <AnalyzingIndicator role={analyzingRole} liveToolCalls={liveToolCalls} />
         )}
-        {isLive && messages.length === 0 && !showAnalyzing && (
-          <p className="text-center text-sm text-slate-500">等待各角色发言…</p>
-        )}
+
         <div ref={bottomRef} />
       </div>
-      {messages.some((m) => m.refs?.length > 0 || m.evidence_ids?.length > 0) && (
-        <p className="border-t border-pitch-800 px-3 py-2 text-xs text-slate-500">
-          说明：<span className="text-gold-400/90">论点 E-xxx</span>{" "}
-          是会上某条观点的编号，点击可跳到原文；
-          <span className="text-slate-400">依据 EV-xxx</span>{" "}
-          是数据库里的结构化事实来源。
-        </p>
-      )}
-      {input ? <div className="border-t border-pitch-700 p-3">{input}</div> : null}
+
+      {input ? <div className="border-t border-pitch-800/80 bg-pitch-950/30 px-4 py-3">{input}</div> : null}
     </div>
   );
 }

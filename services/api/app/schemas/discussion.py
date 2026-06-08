@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 class DiscussionCreate(BaseModel):
     force_refresh: bool = False
+    auto_start: bool = True
 
 
 class DiscussionOut(BaseModel):

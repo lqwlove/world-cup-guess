@@ -31,6 +31,8 @@ from app.services.discussion_service import (
     prepare_followup_chat,
     prepare_resume_discussion,
     run_deliberation,
+    start_discussion_run,
+    stop_discussion_run,
 )
 from app.services.redis_pubsub import channel_name, enqueue_deliberation, get_redis
 
@@ -47,15 +49,48 @@ async def start_discussion(
     if not await session.get(Match, match_id):
         raise HTTPException(404, "Match not found")
 
-    discussion = await create_discussion(session, match_id, force_refresh=body.force_refresh)
+    discussion = await create_discussion(
+        session,
+        match_id,
+        force_refresh=body.force_refresh,
+        auto_start=body.auto_start,
+    )
     if discussion.status == "completed":
         return _to_out(discussion)
 
-    discussion.status = "pending"
-    await session.commit()
-    if not await enqueue_arq_job("run_deliberation_task", str(discussion.id)):
-        raise HTTPException(503, "后台任务队列不可用，请确认 Redis 与 ARQ worker 已启动")
+    if body.auto_start:
+        discussion.status = "pending"
+        await session.commit()
+        if not await enqueue_arq_job("run_deliberation_task", str(discussion.id)):
+            raise HTTPException(503, "后台任务队列不可用，请确认 Redis 与 ARQ worker 已启动")
 
+    return _to_out(discussion)
+
+
+@router.post("/discussions/{discussion_id}/start", response_model=DiscussionOut)
+async def start_discussion_run_endpoint(
+    discussion_id: UUID,
+    session: AsyncSession = Depends(get_session),
+):
+    try:
+        discussion = await start_discussion_run(session, discussion_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    if discussion.status == "pending":
+        if not await enqueue_arq_job("run_deliberation_task", str(discussion.id)):
+            raise HTTPException(503, "后台任务队列不可用，请确认 Redis 与 ARQ worker 已启动")
+    return _to_out(discussion)
+
+
+@router.post("/discussions/{discussion_id}/stop", response_model=DiscussionOut)
+async def stop_discussion_endpoint(
+    discussion_id: UUID,
+    session: AsyncSession = Depends(get_session),
+):
+    try:
+        discussion = await stop_discussion_run(session, discussion_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
     return _to_out(discussion)
 
 

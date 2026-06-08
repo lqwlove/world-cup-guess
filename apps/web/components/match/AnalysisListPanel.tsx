@@ -3,17 +3,19 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { startDiscussion } from "@/lib/api";
+import { createDiscussionDraft } from "@/lib/api";
 import type { DiscussionListItem } from "@/lib/types";
 import { formatDateTime } from "@/lib/formatDateTime";
 
 const STATUS: Record<string, { label: string; className: string }> = {
+  draft: { label: "未开始", className: "bg-slate-700/80 text-slate-300" },
   pending: { label: "排队中", className: "bg-slate-600/80 text-slate-200" },
   running: { label: "分析中", className: "bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/40" },
   awaiting_user: { label: "等待回复", className: "bg-blue-500/20 text-blue-300" },
   completed: { label: "已完成", className: "bg-pitch-500/30 text-pitch-300 ring-1 ring-pitch-400/30" },
   partial: { label: "部分完成", className: "bg-orange-500/20 text-orange-300" },
   failed: { label: "失败", className: "bg-red-500/20 text-red-300" },
+  cancelled: { label: "已停止", className: "bg-slate-600/60 text-slate-400" },
 };
 
 function statusOf(s: string) {
@@ -36,7 +38,7 @@ export function AnalysisListPanel({
     setCreating(true);
     setError(null);
     try {
-      const disc = await startDiscussion(matchId, true);
+      const disc = await createDiscussionDraft(matchId);
       router.push(`/match/${matchId}/analysis/${disc.id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "创建失败");
@@ -80,7 +82,7 @@ export function AnalysisListPanel({
         <div className="rounded-2xl border border-dashed border-pitch-600/80 bg-pitch-900/40 px-6 py-12 text-center">
           <p className="text-slate-300">暂无分析记录</p>
           <p className="mt-2 text-sm text-slate-500">
-            点击「新建分析」启动 AI 战术室合议
+            点击「新建分析」创建记录，进入后手动开始合议
           </p>
         </div>
       ) : (
