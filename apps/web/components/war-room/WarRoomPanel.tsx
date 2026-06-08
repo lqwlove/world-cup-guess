@@ -23,9 +23,7 @@ import type {
 import { MarketSnapshotStrip } from "./MarketSnapshotStrip";
 import { PhaseProgressBar } from "./PhaseProgressBar";
 import { ChatRoom, type LiveToolCall } from "./ChatRoom";
-import { PlaysRecommendation } from "./ConsensusCertificate";
-import { MarketEdgeTable } from "./MarketEdgeTable";
-import { MinorityOpinions } from "./MinorityOpinions";
+import { AnalysisResultCard } from "./AnalysisResultCard";
 
 const TERMINAL = new Set(["completed", "partial", "failed", "cancelled"]);
 const WATCHABLE = new Set(["running", "pending", "awaiting_user"]);
@@ -409,13 +407,7 @@ export function WarRoomPanel({
         </button>
       )}
 
-      {artifact && (
-        <>
-          <PlaysRecommendation data={artifact} />
-          <MarketEdgeTable edges={artifact.market_edge} />
-          <MinorityOpinions opinions={artifact.minority_opinions} />
-        </>
-      )}
+      {artifact && <AnalysisResultCard data={artifact} />}
 
       {artifact && (
         <div className="mt-6 flex gap-2">

@@ -18,6 +18,7 @@ from app.models.entities import (
     Match,
     MatchFact,
 )
+from app.services.analysis_result import extract_analysis_result
 from app.services.consensus_service import validate_consensus_artifact
 from app.services.redis_pubsub import publish_discussion_event
 
@@ -94,27 +95,42 @@ async def list_discussions_for_match(
         .subquery()
     )
     result = await session.execute(
-        select(Discussion, func.coalesce(msg_count.c.message_count, 0).label("message_count"))
+        select(
+            Discussion,
+            func.coalesce(msg_count.c.message_count, 0).label("message_count"),
+            ConsensusArtifact.json_data,
+        )
         .outerjoin(msg_count, Discussion.id == msg_count.c.discussion_id)
+        .outerjoin(ConsensusArtifact, ConsensusArtifact.discussion_id == Discussion.id)
         .where(Discussion.match_id == match_id)
         .order_by(desc(Discussion.started_at), desc(Discussion.id))
     )
     rows: list[dict[str, Any]] = []
-    for discussion, message_count in result.all():
-        rows.append(
-            {
-                "id": discussion.id,
-                "match_id": discussion.match_id,
-                "status": discussion.status,
-                "mode": getattr(discussion, "mode", "analysis") or "analysis",
-                "phase": discussion.phase,
-                "round": discussion.round,
-                "started_at": discussion.started_at,
-                "finished_at": discussion.finished_at,
-                "error_reason": discussion.error_reason,
-                "message_count": int(message_count or 0),
-            }
-        )
+    for discussion, message_count, artifact_json in result.all():
+        row: dict[str, Any] = {
+            "id": discussion.id,
+            "match_id": discussion.match_id,
+            "status": discussion.status,
+            "mode": getattr(discussion, "mode", "analysis") or "analysis",
+            "phase": discussion.phase,
+            "round": discussion.round,
+            "started_at": discussion.started_at,
+            "finished_at": discussion.finished_at,
+            "error_reason": discussion.error_reason,
+            "message_count": int(message_count or 0),
+            "result_pick": None,
+            "result_label": None,
+            "result_pct": None,
+            "result_score": None,
+        }
+        if artifact_json:
+            extracted = extract_analysis_result(artifact_json)
+            if extracted:
+                row["result_pick"] = extracted["pick"]
+                row["result_label"] = extracted["label"]
+                row["result_pct"] = extracted["pct"]
+                row["result_score"] = extracted.get("score")
+        rows.append(row)
     return rows
 
 

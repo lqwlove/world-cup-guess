@@ -40,6 +40,22 @@ def _build_artifact(state: WarRoomState) -> dict[str, Any]:
     reasons = list(state.get("claims_registry", {}).keys())[:2] or ["E-001"]
     registry = state.get("claims_registry", {})
 
+    total_prob = sum(consensus_probs.values()) or 1.0
+    probs_pct = {
+        k: int(round(v / total_prob * 100)) for k, v in consensus_probs.items()
+    }
+    diff = 100 - sum(probs_pct.values())
+    if diff:
+        top_key = max(probs_pct, key=probs_pct.get)
+        probs_pct[top_key] += diff
+    result_pick = max(probs_pct, key=probs_pct.get)
+    score_top3 = [
+        {"score": "2-1", "confidence": 0.17},
+        {"score": "1-1", "confidence": 0.14},
+        {"score": "1-0", "confidence": 0.11},
+    ]
+    top_score = max(score_top3, key=lambda s: s["confidence"])["score"]
+
     return {
         "match_id": state["match_id"],
         "status": "CONSENSUS_FINAL",
@@ -53,11 +69,7 @@ def _build_artifact(state: WarRoomState) -> dict[str, Any]:
                 "reasons": reasons,
                 "dissent": "分裂共识" if strength == "weak" else None,
             },
-            "score_top3": [
-                {"score": "2-1", "confidence": 0.17},
-                {"score": "1-1", "confidence": 0.14},
-                {"score": "1-0", "confidence": 0.11},
-            ],
+            "score_top3": score_top3,
             "handicap": {
                 "line": "-0.5",
                 "pick": pick,
@@ -74,6 +86,11 @@ def _build_artifact(state: WarRoomState) -> dict[str, Any]:
         ],
         "unresolved": state.get("unresolved", []),
         "skeptic_ack": state.get("skeptic_ack", "ACK_WITH_RESERVATION"),
+        "prediction": {
+            "pick": result_pick,
+            "probs": probs_pct,
+            "score": top_score,
+        },
     }
 
 

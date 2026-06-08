@@ -33,6 +33,10 @@ class DiscussionListItem(BaseModel):
     finished_at: Optional[datetime] = None
     error_reason: Optional[str] = None
     message_count: int = 0
+    result_pick: Optional[str] = None
+    result_label: Optional[str] = None
+    result_pct: Optional[int] = None
+    result_score: Optional[str] = None
 
 
 class ResumeDiscussion(BaseModel):

@@ -48,6 +48,10 @@ export interface Discussion {
 
 export interface DiscussionListItem extends Discussion {
   message_count: number;
+  result_pick?: string | null;
+  result_label?: string | null;
+  result_pct?: number | null;
+  result_score?: string | null;
 }
 
 export interface ConsensusArtifact {
@@ -89,6 +93,11 @@ export interface ConsensusData {
   minority_opinions: { role: string; summary: string }[];
   unresolved: string[];
   skeptic_ack: string;
+  prediction?: {
+    pick: string;
+    probs: Record<string, number>;
+    score?: string;
+  };
 }
 
 export interface MarketData {

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { createDiscussionDraft } from "@/lib/api";
 import type { DiscussionListItem } from "@/lib/types";
 import { formatDateTime } from "@/lib/formatDateTime";
+import { AnalysisResultInline } from "@/components/war-room/AnalysisResultCard";
 
 const STATUS: Record<string, { label: string; className: string }> = {
   draft: { label: "未开始", className: "bg-slate-700/80 text-slate-300" },
@@ -91,6 +92,7 @@ export function AnalysisListPanel({
             const st = statusOf(d.status);
             const title = `分析 #${discussions.length - idx}`;
             const time = d.finished_at || d.started_at;
+            const hasResult = d.result_label != null;
             return (
               <li key={d.id}>
                 <Link
@@ -114,11 +116,22 @@ export function AnalysisListPanel({
                         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
                       )}
                     </div>
+                    {hasResult && (
+                      <div className="mt-1.5">
+                        <AnalysisResultInline
+                          label={d.result_label!}
+                          score={d.result_score}
+                        />
+                      </div>
+                    )}
                     <p className="mt-1 text-xs text-slate-500">
                       {time ? formatDateTime(time) : "尚未开始"}
                       {d.message_count > 0 ? ` · ${d.message_count} 条消息` : ""}
-                      {d.phase ? ` · ${d.phase}` : ""}
+                      {!hasResult && d.phase ? ` · ${d.phase}` : ""}
                     </p>
+                    {!hasResult && d.status === "completed" && (
+                      <p className="mt-1 text-xs text-slate-500">暂无结论数据</p>
+                    )}
                     {d.error_reason && (
                       <p className="mt-1 truncate text-xs text-red-400/80">
                         {d.error_reason}
