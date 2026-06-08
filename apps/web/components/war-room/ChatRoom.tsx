@@ -1,36 +1,17 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import type { DiscussionMessage } from "@/lib/types";
-
-const ROLE_LABELS: Record<string, string> = {
-  data: "数据官",
-  squad: "阵容官",
-  market: "市场官",
-  skeptic: "风控官",
-  handicap: "让球专家",
-  scoreline: "比分专家",
-  moderator: "主持人",
-  supervisor: "调度官",
-  user: "你",
-  summarizer: "总结官",
-};
-
-const MSG_LABELS: Record<string, string> = {
-  STATEMENT: "陈述",
-  CHALLENGE: "质疑",
-  REBUTTAL: "回应",
-  SUPPORT: "支持",
-  VOTE: "投票",
-  ACK: "确认",
-  ACK_WITH_RESERVATION: "保留确认",
-  CONSENSUS_FINAL: "共识定稿",
-  CONSENSUS_DRAFT: "共识草案",
-  THREAD_DIGEST: "阶段摘要",
-  REVISE: "修订",
-  USER_REPLY: "回复",
-  SYSTEM_QUESTION: "提问",
-};
+import {
+  ROLE_LABELS,
+  buildClaimIndex,
+  claimIdToMessageSeq,
+  formatEvidenceLabel,
+  formatMessageContent,
+  formatMsgTypeLabel,
+  formatPhaseLabel,
+  formatRefLabel,
+} from "@/lib/formatDiscussionMessage";
 
 const ROLE_COLORS: Record<string, string> = {
   moderator: "bg-gold-500/20 text-gold-300",
@@ -45,6 +26,10 @@ const ROLE_COLORS: Record<string, string> = {
   summarizer: "bg-green-500/15 text-green-300",
 };
 
+function scrollToMessage(seq: number) {
+  document.getElementById(`msg-${seq}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
 export function ChatRoom({
   messages,
   isLive,
@@ -55,6 +40,7 @@ export function ChatRoom({
   input?: ReactNode;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const claimIndex = useMemo(() => buildClaimIndex(messages), [messages]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -90,21 +76,32 @@ export function ChatRoom({
               {ROLE_LABELS[m.role] || m.role}
             </div>
             <div className="min-w-0 flex-1 rounded-lg bg-pitch-800 px-3 py-2">
-              <div className="mb-1 flex flex-wrap gap-2 text-xs text-slate-500">
-                <span>{MSG_LABELS[m.msg_type] || m.msg_type}</span>
-                {m.phase && <span>· {m.phase}</span>}
-                {m.refs?.map((r) => (
-                  <span key={r} className="text-gold-400">
-                    {r}
-                  </span>
-                ))}
+              <div className="mb-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <span>{formatMsgTypeLabel(m.msg_type)}</span>
+                {m.phase && <span>· {formatPhaseLabel(m.phase)}</span>}
+                {m.refs?.map((r) => {
+                  const targetSeq = claimIdToMessageSeq(messages, r);
+                  const snippet = claimIndex[r];
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      title={snippet ? `「${snippet}」` : "论点编号"}
+                      disabled={targetSeq == null}
+                      onClick={() => targetSeq != null && scrollToMessage(targetSeq)}
+                      className="text-gold-400 hover:underline disabled:cursor-default disabled:no-underline"
+                    >
+                      {formatRefLabel(r, claimIndex)}
+                    </button>
+                  );
+                })}
               </div>
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-100">
-                {m.content}
+                {formatMessageContent(m)}
               </p>
               {m.evidence_ids?.length > 0 && (
                 <p className="mt-1 text-xs text-slate-500">
-                  证据：{m.evidence_ids.join("、")}
+                  依据：{m.evidence_ids.map(formatEvidenceLabel).join("；")}
                 </p>
               )}
             </div>
@@ -115,6 +112,14 @@ export function ChatRoom({
         )}
         <div ref={bottomRef} />
       </div>
+      {messages.some((m) => m.refs?.length > 0 || m.evidence_ids?.length > 0) && (
+        <p className="border-t border-pitch-800 px-3 py-2 text-xs text-slate-500">
+          说明：<span className="text-gold-400/90">论点 E-xxx</span>{" "}
+          是会上某条观点的编号，点击可跳到原文；
+          <span className="text-slate-400">依据 EV-xxx</span>{" "}
+          是数据库里的结构化事实来源。
+        </p>
+      )}
       {input ? <div className="border-t border-pitch-700 p-3">{input}</div> : null}
     </div>
   );

@@ -179,7 +179,7 @@ async def _final_vote_node(state: DeliberationState) -> DeliberationState:
     mod_open = {
         "role": "moderator",
         "msg_type": "STATEMENT",
-        "content": "Final vote opened for 1x2.",
+        "content": "主持人宣布：胜平负玩法开始表决。",
         "refs": [],
         "evidence_ids": [],
         "phase": "FinalVote",

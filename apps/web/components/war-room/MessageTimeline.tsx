@@ -2,16 +2,16 @@
 
 import { useMemo, useState } from "react";
 import type { DiscussionMessage } from "@/lib/types";
-
-const ROLE_LABELS: Record<string, string> = {
-  data: "数据官",
-  squad: "阵容官",
-  market: "市场官",
-  skeptic: "风控官",
-  handicap: "让球专家",
-  scoreline: "比分专家",
-  moderator: "主持人",
-};
+import {
+  ROLE_LABELS,
+  buildClaimIndex,
+  claimIdToMessageSeq,
+  formatEvidenceLabel,
+  formatMessageContent,
+  formatMsgTypeLabel,
+  formatPhaseLabel,
+  formatRefLabel,
+} from "@/lib/formatDiscussionMessage";
 
 const MSG_STYLES: Record<string, string> = {
   STATEMENT: "border-l-pitch-400",
@@ -25,7 +25,21 @@ const MSG_STYLES: Record<string, string> = {
   THREAD_DIGEST: "border-l-slate-500 opacity-80",
 };
 
-const PHASE_ORDER = ["Opening", "CrossExam", "DeepDive", "PlaybookSplit", "FinalVote", "Consensus"];
+const PHASE_ORDER = [
+  "Analysis",
+  "Opening",
+  "CrossExam",
+  "DeepDive",
+  "PlaybookSplit",
+  "FinalVote",
+  "Summary",
+  "FollowUp",
+  "Consensus",
+];
+
+function scrollToMessage(seq: number) {
+  document.getElementById(`msg-${seq}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
 
 export function MessageTimeline({
   messages,
@@ -35,16 +49,19 @@ export function MessageTimeline({
   readMode: "consensus" | "full" | "disagreement";
 }) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const claimIndex = useMemo(() => buildClaimIndex(messages), [messages]);
 
   const filtered = useMemo(() => {
     if (readMode === "disagreement") {
       return messages.filter((m) =>
-        ["CHALLENGE", "REBUTTAL", "ACK_WITH_RESERVATION"].includes(m.msg_type)
+        ["CHALLENGE", "REBUTTAL", "ACK_WITH_RESERVATION"].includes(m.msg_type),
       );
     }
     if (readMode === "consensus") {
       return messages.filter((m) =>
-        ["CONSENSUS_FINAL", "CONSENSUS_DRAFT", "ACK", "ACK_WITH_RESERVATION"].includes(m.msg_type)
+        ["CONSENSUS_FINAL", "CONSENSUS_DRAFT", "ACK", "ACK_WITH_RESERVATION"].includes(
+          m.msg_type,
+        ),
       );
     }
     return messages;
@@ -80,7 +97,7 @@ export function MessageTimeline({
               className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-medium text-slate-300"
               onClick={() => setCollapsed((c) => ({ ...c, [phase]: !isCollapsed }))}
             >
-              <span>{phase}</span>
+              <span>{formatPhaseLabel(phase)}</span>
               <span className="text-xs text-slate-500">{byPhase[phase].length} 条</span>
             </button>
             {!isCollapsed && (
@@ -95,17 +112,27 @@ export function MessageTimeline({
                       <span className="font-medium text-pitch-400">
                         {ROLE_LABELS[m.role] || m.role}
                       </span>
-                      <span className="text-slate-500">{m.msg_type}</span>
-                      {m.refs?.map((r) => (
-                        <span key={r} className="text-gold-400">
-                          {r}
-                        </span>
-                      ))}
+                      <span className="text-slate-500">{formatMsgTypeLabel(m.msg_type)}</span>
+                      {m.refs?.map((r) => {
+                        const targetSeq = claimIdToMessageSeq(messages, r);
+                        return (
+                          <button
+                            key={r}
+                            type="button"
+                            title={claimIndex[r]}
+                            disabled={targetSeq == null}
+                            onClick={() => targetSeq != null && scrollToMessage(targetSeq)}
+                            className="text-gold-400 hover:underline disabled:cursor-default"
+                          >
+                            {formatRefLabel(r, claimIndex)}
+                          </button>
+                        );
+                      })}
                     </div>
-                    <p className="text-sm leading-relaxed">{m.content}</p>
+                    <p className="text-sm leading-relaxed">{formatMessageContent(m)}</p>
                     {m.evidence_ids?.length > 0 && (
                       <p className="mt-1 text-xs text-slate-500">
-                        证据: {m.evidence_ids.join(", ")}
+                        依据：{m.evidence_ids.map(formatEvidenceLabel).join("；")}
                       </p>
                     )}
                   </div>

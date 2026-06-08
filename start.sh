@@ -7,6 +7,7 @@
 #   ./start.sh migrate        仅数据库迁移
 #   ./start.sh seed           导入种子数据
 #   ./start.sh sync-facts     从 football-data.org 同步数据概览（需 API Key）
+#   ./start.sh reset-discussion [match_id]  清空某场合议，便于页面重新分析
 #   ./start.sh import-matches 从 FIFA 脚本生成 seeds/matches.json
 #   ./start.sh build-web      仅构建前端（不启动）
 #   ./start.sh setup          仅创建 Conda 环境并安装依赖
@@ -202,6 +203,15 @@ cmd_sync_facts() {
   python -m app.scripts.sync_football_facts "$@"
 }
 
+cmd_reset_discussion() {
+  load_env
+  ensure_conda_ready
+  local match_id="${1:-fifa-400021443}"
+  echo "[重置] 清空比赛 $match_id 的合议记录（墨西哥 vs 南非 默认 fifa-400021443）"
+  cd "$API_DIR"
+  python -m app.scripts.reset_match_discussion "$match_id"
+}
+
 cmd_build_web() {
   load_env
   cd "$WEB_DIR"
@@ -336,6 +346,10 @@ main() {
     sync-facts)
       shift
       cmd_sync_facts "$@"
+      ;;
+    reset-discussion)
+      shift
+      cmd_reset_discussion "$@"
       ;;
     import-matches) cmd_import_matches ;;
     build-web) load_env; cmd_build_web ;;
