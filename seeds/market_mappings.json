@@ -1,17 +1,28 @@
 [
   {
-    "match_id": "fifa-400021543",
+    "match_id": "fifa-400021443",
     "platform": "polymarket",
-    "event_slug": "2026-fifa-world-cup-final-winner",
+    "event_slug": "fifwc-mex-rsa-2026-06-11",
     "outcome_map": {
-      "home": "argentina",
+      "home": "mexico",
       "draw": "draw",
-      "away": "spain"
+      "away": "south africa"
     },
     "review_status": "approved"
   },
   {
-    "match_id": "fifa-400021541",
+    "match_id": "fifa-400021441",
+    "platform": "polymarket",
+    "event_slug": "2026-fifa-world-cup-final-winner",
+    "outcome_map": {
+      "home": "korea republic",
+      "draw": "draw",
+      "away": "czechia"
+    },
+    "review_status": "approved"
+  },
+  {
+    "match_id": "fifa-400021449",
     "platform": "polymarket",
     "event_slug": "brazil-vs-france-semifinal",
     "outcome_map": {

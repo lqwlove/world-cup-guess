@@ -11,7 +11,12 @@ from app.services import match_service
 from app.services.consensus_service import get_latest_consensus
 from app.config import get_settings
 from app.services.football_data_service import sync_match_facts
-from app.services.market_service import get_market_for_match
+from app.services.market_service import (
+    ensure_market_snapshot,
+    fetch_polymarket_snapshot,
+    get_market_for_match,
+    has_market_mapping,
+)
 
 settings = get_settings()
 
@@ -59,10 +64,36 @@ async def get_facts(match_id: str, session: AsyncSession = Depends(get_session))
 
 @router.get("/{match_id}/market")
 async def get_market(match_id: str, session: AsyncSession = Depends(get_session)):
+    if not await has_market_mapping(session, match_id):
+        return {"available": False, "message": "No market mapping"}
+    await ensure_market_snapshot(session, match_id)
     market = await get_market_for_match(session, match_id)
     if not market:
-        return {"available": False, "message": "No market mapping"}
+        return {"available": False, "message": "Market mapping exists but snapshot unavailable"}
     return {"available": True, **market.model_dump()}
+
+
+@router.post("/{match_id}/market/sync")
+async def sync_market_from_polymarket(
+    match_id: str, session: AsyncSession = Depends(get_session)
+):
+    """Pull latest Polymarket probabilities for a mapped match."""
+    m = await session.get(Match, match_id)
+    if not m:
+        raise HTTPException(404, "Match not found")
+    if not await has_market_mapping(session, match_id):
+        raise HTTPException(404, "No Polymarket mapping for this match")
+    snap = await fetch_polymarket_snapshot(session, match_id)
+    if not snap:
+        raise HTTPException(502, "Failed to fetch Polymarket snapshot")
+    market = await get_market_for_match(session, match_id)
+    return {
+        "match_id": match_id,
+        "synced": True,
+        "probabilities": snap.probabilities,
+        "captured_at": snap.captured_at.isoformat() + "Z",
+        "market": market.model_dump() if market else None,
+    }
 
 
 @router.post("/{match_id}/facts/sync")

@@ -1,5 +1,6 @@
 """Polymarket Gamma API integration."""
 
+import json
 from datetime import datetime
 from typing import Any, Optional
 
@@ -12,6 +13,33 @@ from app.models.entities import MarketMapping, MarketSnapshot
 from app.schemas.match import MarketMappingOut, MarketSnapshotOut
 
 settings = get_settings()
+
+DRAW_TOKENS = ("draw", "tie", "平局", "x")
+
+
+async def has_market_mapping(session: AsyncSession, match_id: str) -> bool:
+    result = await session.execute(
+        select(MarketMapping.id).where(
+            MarketMapping.match_id == match_id,
+            MarketMapping.platform == "polymarket",
+        )
+    )
+    return result.scalar_one_or_none() is not None
+
+
+async def ensure_market_snapshot(session: AsyncSession, match_id: str) -> bool:
+    """Fetch Polymarket snapshot when mapping exists but no snapshot yet."""
+    if not await has_market_mapping(session, match_id):
+        return False
+    snap_result = await session.execute(
+        select(MarketSnapshot.id)
+        .where(MarketSnapshot.match_id == match_id)
+        .limit(1)
+    )
+    if snap_result.scalar_one_or_none() is not None:
+        return True
+    snap = await fetch_polymarket_snapshot(session, match_id)
+    return snap is not None
 
 
 async def get_market_for_match(session: AsyncSession, match_id: str) -> Optional[MarketSnapshotOut]:
@@ -62,15 +90,16 @@ async def fetch_polymarket_snapshot(
     if not mapping:
         return None
 
-    probabilities = await _fetch_probabilities(mapping)
-    if not probabilities:
+    parsed = await _fetch_event_probabilities(mapping)
+    if not parsed:
         return None
 
+    probabilities, raw_meta = parsed
     snapshot = MarketSnapshot(
         match_id=match_id,
         platform="polymarket",
         probabilities=probabilities,
-        raw={"event_slug": mapping.event_slug},
+        raw=raw_meta,
         captured_at=datetime.utcnow(),
     )
     session.add(snapshot)
@@ -79,8 +108,9 @@ async def fetch_polymarket_snapshot(
     return snapshot
 
 
-async def _fetch_probabilities(mapping: MarketMapping) -> Optional[dict[str, float]]:
-    """Fetch from Gamma API or return mock when unavailable."""
+async def _fetch_event_probabilities(
+    mapping: MarketMapping,
+) -> Optional[tuple[dict[str, float], dict[str, Any]]]:
     slug = mapping.event_slug
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
@@ -90,17 +120,74 @@ async def _fetch_probabilities(mapping: MarketMapping) -> Optional[dict[str, flo
             )
             if resp.status_code == 200:
                 data = resp.json()
-                probs = _parse_gamma_response(data, mapping.outcome_map)
-                if probs:
-                    return probs
+                parsed = _parse_gamma_response(data, mapping.outcome_map)
+                if parsed:
+                    probs, markets_meta = parsed
+                    return probs, {
+                        "event_slug": slug,
+                        "title": markets_meta.get("title"),
+                        "volume": markets_meta.get("volume"),
+                        "volume24hr": markets_meta.get("volume24hr"),
+                        "markets": markets_meta.get("markets"),
+                    }
     except Exception:
         pass
 
-    # Fallback mock probabilities for demo / offline
-    return _mock_probabilities(mapping.match_id)
+    mock = _mock_probabilities(mapping.match_id)
+    if mock:
+        return mock, {"event_slug": slug, "source": "mock"}
+    return None
 
 
-def _parse_gamma_response(data: Any, outcome_map: dict[str, str]) -> Optional[dict[str, float]]:
+def _as_list(value: Any) -> list[Any]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            return parsed if isinstance(parsed, list) else [parsed]
+        except json.JSONDecodeError:
+            return [value]
+    return [value]
+
+
+def _yes_price(market: dict[str, Any]) -> Optional[float]:
+    outcomes = _as_list(market.get("outcomes"))
+    prices = _as_list(market.get("outcomePrices") or market.get("prices"))
+    if not prices:
+        return None
+    for i, outcome in enumerate(outcomes):
+        if str(outcome).lower() == "yes" and i < len(prices):
+            return float(prices[i])
+    return float(prices[0])
+
+
+def _market_blob(market: dict[str, Any]) -> str:
+    parts = [
+        market.get("groupItemTitle"),
+        market.get("question"),
+        market.get("slug"),
+        market.get("description"),
+    ]
+    return " ".join(str(p) for p in parts if p).lower()
+
+
+def _outcome_key(blob: str, mapped: str, key: str) -> bool:
+    token = str(mapped).lower().strip()
+    if not token:
+        return False
+    if token in blob:
+        return True
+    if key == "draw":
+        return any(t in blob for t in DRAW_TOKENS)
+    return False
+
+
+def _parse_gamma_response(
+    data: Any, outcome_map: dict[str, str]
+) -> Optional[tuple[dict[str, float], dict[str, Any]]]:
     if not data:
         return None
     events = data if isinstance(data, list) else data.get("data", data.get("events", []))
@@ -111,28 +198,80 @@ def _parse_gamma_response(data: Any, outcome_map: dict[str, str]) -> Optional[di
     if not markets:
         return None
 
+    probs = _parse_split_yes_no_markets(markets, outcome_map)
+    if not probs:
+        probs = _parse_single_market_outcomes(markets, outcome_map)
+    if not probs:
+        return None
+
+    total = sum(probs.values()) or 1.0
+    normalized = {k: round(v / total, 4) for k, v in probs.items()}
+
+    markets_meta = []
+    for market in markets:
+        yes_p = _yes_price(market)
+        markets_meta.append(
+            {
+                "slug": market.get("slug"),
+                "question": market.get("question"),
+                "groupItemTitle": market.get("groupItemTitle"),
+                "yes_price": yes_p,
+                "volume": market.get("volume"),
+            }
+        )
+
+    return normalized, {
+        "title": event.get("title"),
+        "volume": event.get("volume"),
+        "volume24hr": event.get("volume24hr"),
+        "markets": markets_meta,
+    }
+
+
+def _parse_split_yes_no_markets(
+    markets: list[dict[str, Any]], outcome_map: dict[str, str]
+) -> dict[str, float]:
+    """FIFA WC style: one Yes/No market per outcome (home / draw / away)."""
     probs: dict[str, float] = {}
     for market in markets:
-        outcomes = market.get("outcomes") or []
-        prices = market.get("outcomePrices") or market.get("prices") or []
+        yes_p = _yes_price(market)
+        if yes_p is None:
+            continue
+        blob = _market_blob(market)
+        for key in ("home", "draw", "away"):
+            if key in probs:
+                continue
+            mapped = outcome_map.get(key, "")
+            if _outcome_key(blob, mapped, key):
+                probs[key] = yes_p
+    return probs
+
+
+def _parse_single_market_outcomes(
+    markets: list[dict[str, Any]], outcome_map: dict[str, str]
+) -> dict[str, float]:
+    """Legacy: one market with named outcomes (home / draw / away)."""
+    probs: dict[str, float] = {}
+    for market in markets:
+        outcomes = _as_list(market.get("outcomes"))
+        prices = _as_list(market.get("outcomePrices") or market.get("prices"))
         for i, outcome in enumerate(outcomes):
             price = float(prices[i]) if i < len(prices) else 0.0
+            outcome_l = str(outcome).lower()
             for key, mapped in outcome_map.items():
-                if str(outcome).lower() == str(mapped).lower() or str(outcome).lower() in str(mapped).lower():
+                mapped_l = str(mapped).lower()
+                if outcome_l == mapped_l or mapped_l in outcome_l or outcome_l in mapped_l:
                     probs[key] = price
-    if probs:
-        total = sum(probs.values()) or 1.0
-        return {k: v / total for k, v in probs.items()}
-    return None
+    return probs
 
 
-def _mock_probabilities(match_id: str) -> dict[str, float]:
+def _mock_probabilities(match_id: str) -> Optional[dict[str, float]]:
     mocks = {
         "fifa-400021543": {"home": 0.48, "draw": 0.26, "away": 0.26},
         "fifa-400021541": {"home": 0.42, "draw": 0.28, "away": 0.30},
         "fifa-400021496": {"home": 0.55, "draw": 0.25, "away": 0.20},
     }
-    return mocks.get(match_id, {"home": 0.33, "draw": 0.34, "away": 0.33})
+    return mocks.get(match_id)
 
 
 def compute_market_edge(
