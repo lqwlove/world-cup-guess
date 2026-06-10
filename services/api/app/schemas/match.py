@@ -67,6 +67,13 @@ class MarketSnapshotOut(BaseModel):
         return serialize_utc_datetime(value)
 
 
+class MarketSnapshotImport(BaseModel):
+    probabilities: dict[str, float]
+    raw: Optional[dict[str, Any]] = None
+    platform: str = "polymarket"
+    source: str = "local_sync"
+
+
 class MatchFilters(BaseModel):
     date: Optional[str] = None
     stage: Optional[str] = None

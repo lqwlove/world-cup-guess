@@ -7,6 +7,7 @@
 #   ./start.sh migrate        仅数据库迁移
 #   ./start.sh seed           导入种子数据
 #   ./start.sh sync-facts     从 football-data.org 同步数据概览（需 API Key）
+#   ./start.sh sync-market    本地拉 Polymarket 写 .env 里的 DATABASE_URL（需翻墙）
 #   ./start.sh reset-discussion [match_id]  清空某场合议，便于页面重新分析
 #   ./start.sh import-matches 从 FIFA 脚本生成 seeds/matches.json
 #   ./start.sh build-web      仅构建前端（不启动）
@@ -34,7 +35,7 @@ mkdir -p "$RUN_DIR" "$LOG_DIR"
 
 load_env() {
   if [[ ! -f "$ENV_FILE" ]]; then
-    echo "[错误] 缺少 $ENV_FILE，请先: cp .env.production.example .env.production"
+    echo "[错误] 缺少 ${ENV_FILE}，请先: cp .env.production.example .env.production"
     exit 1
   fi
   set -a
@@ -100,7 +101,7 @@ cmd_setup() {
 ensure_conda_ready() {
   conda_init
   if ! conda env list | tail -n +2 | awk '{print $1}' | sed 's/^\*//' | grep -Fxq "$CONDA_ENV"; then
-    echo "[提示] 未找到 Conda 环境 $CONDA_ENV，自动执行 setup..."
+    echo "[提示] 未找到 Conda 环境 ${CONDA_ENV}，自动执行 setup..."
     cmd_setup
     return 0
   fi
@@ -247,11 +248,34 @@ cmd_seed() {
   python -m app.scripts.seed
 }
 
+cmd_sync_market() {
+  ENV_FILE="$ROOT/.env"
+  load_env
+  ensure_conda_ready
+  local extra=()
+  local args=("$@")
+  if [[ ${#args[@]} -gt 0 && ${args[0]} == "--" ]]; then
+    args=("${args[@]:1}")
+  fi
+  if [[ ${#args[@]} -gt 0 ]]; then
+    if [[ ${args[*]} != *"--api-url"* ]] && [[ -n ${MARKET_SYNC_API_URL:-} ]]; then
+      extra+=(--api-url "$MARKET_SYNC_API_URL")
+    fi
+  else
+    if [[ -n ${MARKET_SYNC_API_URL:-} ]]; then
+      extra+=(--api-url "$MARKET_SYNC_API_URL")
+    fi
+  fi
+  echo "[同步] Polymarket → market_snapshots ${args[*]:-（全部映射）}"
+  cd "$API_DIR"
+  python -m app.scripts.sync_polymarket_local ${extra[@]+"${extra[@]}"} ${args[@]+"${args[@]}"}
+}
+
 cmd_sync_facts() {
   load_env
   ensure_conda_ready
   if [[ -z "${FOOTBALL_DATA_API_KEY:-}" ]]; then
-    echo "[错误] 请在 $ENV_FILE 中设置 FOOTBALL_DATA_API_KEY"
+    echo "[错误] 请在 ${ENV_FILE} 中设置 FOOTBALL_DATA_API_KEY"
     echo "      注册: https://www.football-data.org/"
     exit 1
   fi
@@ -413,6 +437,10 @@ main() {
     sync-facts)
       shift
       cmd_sync_facts "$@"
+      ;;
+    sync-market)
+      shift
+      cmd_sync_market "$@"
       ;;
     reset-discussion)
       shift

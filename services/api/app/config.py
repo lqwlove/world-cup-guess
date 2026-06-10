@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     football_data_base_url: str = "https://api.football-data.org/v4"
     football_data_competition: str = "WC"
     polymarket_gamma_url: str = "https://gamma-api.polymarket.com"
+    # 生产机无法直连 Polymarket 时设为 false，由本地脚本 push 快照
+    polymarket_fetch_enabled: bool = True
 
     # Web search（Tavily 优先；未配置时回退 DuckDuckGo）
     tavily_api_key: str = ""

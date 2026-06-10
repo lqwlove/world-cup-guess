@@ -38,6 +38,8 @@ async def ensure_market_snapshot(session: AsyncSession, match_id: str) -> bool:
     )
     if snap_result.scalar_one_or_none() is not None:
         return True
+    if not settings.polymarket_fetch_enabled:
+        return False
     snap = await fetch_polymarket_snapshot(session, match_id)
     return snap is not None
 
@@ -80,6 +82,8 @@ async def get_market_for_match(session: AsyncSession, match_id: str) -> Optional
 async def fetch_polymarket_snapshot(
     session: AsyncSession, match_id: str
 ) -> Optional[MarketSnapshot]:
+    if not settings.polymarket_fetch_enabled:
+        return None
     mapping_result = await session.execute(
         select(MarketMapping).where(
             MarketMapping.match_id == match_id,
@@ -383,3 +387,50 @@ def compute_market_edge(
         )
     rows.sort(key=lambda r: abs(r["edge"]), reverse=True)
     return rows
+
+
+async def import_market_snapshot(
+    session: AsyncSession,
+    match_id: str,
+    probabilities: dict[str, float],
+    raw: Optional[dict[str, Any]] = None,
+    *,
+    platform: str = "polymarket",
+) -> MarketSnapshot:
+    if not await has_market_mapping(session, match_id):
+        raise ValueError(f"No market mapping for {match_id}")
+
+    payload = dict(raw or {})
+    payload.setdefault("source", "import")
+    snapshot = MarketSnapshot(
+        match_id=match_id,
+        platform=platform,
+        probabilities=probabilities,
+        raw=payload,
+        captured_at=datetime.utcnow(),
+    )
+    session.add(snapshot)
+    await session.commit()
+    await session.refresh(snapshot)
+    return snapshot
+
+
+def fetch_gamma_for_mapping(
+    event_slug: str,
+    outcome_map: dict[str, str],
+    *,
+    gamma_url: Optional[str] = None,
+) -> Optional[tuple[dict[str, float], dict[str, Any]]]:
+    """Sync fetch from Gamma API (for local CLI with VPN)."""
+    url = (gamma_url or settings.polymarket_gamma_url).rstrip("/")
+    try:
+        with httpx.Client(timeout=15.0) as client:
+            resp = client.get(f"{url}/events", params={"slug": event_slug})
+            if resp.status_code != 200:
+                return None
+            parsed = _parse_gamma_response(resp.json(), outcome_map)
+            if parsed:
+                return parsed
+    except Exception:
+        return None
+    return None

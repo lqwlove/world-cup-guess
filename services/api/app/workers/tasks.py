@@ -40,6 +40,8 @@ async def followup_chat_task(ctx, discussion_id: str, question: str) -> str:
 
 
 async def refresh_market_snapshots(ctx) -> int:
+    if not settings.polymarket_fetch_enabled:
+        return 0
     count = 0
     async with async_session_factory() as session:
         result = await session.execute(select(MarketMapping))
