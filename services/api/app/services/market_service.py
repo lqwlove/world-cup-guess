@@ -14,7 +14,7 @@ from app.schemas.match import MarketMappingOut, MarketSnapshotOut
 
 settings = get_settings()
 
-DRAW_TOKENS = ("draw", "tie", "平局", "x")
+DRAW_TOKENS = ("draw", "tie", "平局")
 
 
 async def has_market_mapping(session: AsyncSession, match_id: str) -> bool:
@@ -165,28 +165,42 @@ def _yes_price(market: dict[str, Any]) -> Optional[float]:
     for i, outcome in enumerate(outcomes):
         if str(outcome).lower() == "yes" and i < len(prices):
             return float(prices[i])
-    return float(prices[0])
+    return None
 
 
 def _market_blob(market: dict[str, Any]) -> str:
+    """Short text for outcome matching (exclude long description — causes false positives)."""
     parts = [
         market.get("groupItemTitle"),
         market.get("question"),
         market.get("slug"),
-        market.get("description"),
     ]
     return " ".join(str(p) for p in parts if p).lower()
 
 
-def _outcome_key(blob: str, mapped: str, key: str) -> bool:
-    token = str(mapped).lower().strip()
-    if not token:
-        return False
-    if token in blob:
-        return True
+def _is_yes_no_market(market: dict[str, Any]) -> bool:
+    outcomes = [str(o).lower() for o in _as_list(market.get("outcomes"))]
+    return "yes" in outcomes and "no" in outcomes
+
+
+def _split_outcome_key(market: dict[str, Any], outcome_map: dict[str, str], key: str) -> bool:
+    """Match FIFA-style split Yes/No markets (one market per home / draw / away)."""
+    title = str(market.get("groupItemTitle") or "").lower().strip()
+    question = str(market.get("question") or "").lower()
+    mapped = str(outcome_map.get(key, "")).lower().strip()
+
+    is_draw_market = title.startswith("draw") or "end in a draw" in question
+    if is_draw_market:
+        return key == "draw"
+
     if key == "draw":
-        return any(t in blob for t in DRAW_TOKENS)
-    return False
+        return False
+    if not mapped:
+        return False
+
+    if title == mapped or title.startswith(mapped + " ") or title.endswith(" " + mapped):
+        return True
+    return mapped in question and " vs " not in question
 
 
 def _parse_gamma_response(
@@ -331,15 +345,15 @@ def _parse_split_yes_no_markets(
     """FIFA WC style: one Yes/No market per outcome (home / draw / away)."""
     probs: dict[str, float] = {}
     for market in markets:
+        if not _is_yes_no_market(market):
+            continue
         yes_p = _yes_price(market)
         if yes_p is None:
             continue
-        blob = _market_blob(market)
         for key in ("home", "draw", "away"):
             if key in probs:
                 continue
-            mapped = outcome_map.get(key, "")
-            if _outcome_key(blob, mapped, key):
+            if _split_outcome_key(market, outcome_map, key):
                 probs[key] = yes_p
     return probs
 
