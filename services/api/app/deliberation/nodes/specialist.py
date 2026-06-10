@@ -7,6 +7,7 @@ from app.deliberation.activity import publish_agent_analyzing, publish_agent_idl
 from app.deliberation.agents.specialist_agent import run_specialist_agent
 from app.deliberation.constants import SPECIALIST_ROLES
 from app.deliberation.match_brief import is_vacuous_content
+from app.deliberation.debate_schedule import update_unresolved
 from app.deliberation.rules import has_factual_claim, validate_message
 from app.deliberation.state import WarRoomState
 from app.deliberation.tools.facts import reload_evidence_ids
@@ -122,19 +123,28 @@ async def specialist_node(state: WarRoomState) -> dict[str, Any]:
     if discussion_id:
         await publish_agent_idle(discussion_id, role)
     registry = dict(state.get("claims_registry", {}))
+    claim_authors = dict(state.get("claim_authors", {}))
     if msg.get("claim_id"):
         registry[msg["claim_id"]] = msg.get("content", "")[:120]
+        claim_authors[msg["claim_id"]] = role
+
+    unresolved = list(state.get("unresolved", []))
+    if msg.get("msg_type") in ("CHALLENGE", "REBUTTAL", "SUPPORT", "REVISE"):
+        unresolved = update_unresolved(unresolved, msg)
 
     outputs = dict(state.get("specialist_outputs", {}))
     outputs[role] = {
         "tool_trace": tool_trace,
         "aggregated": aggregated,
-        "summary": msg.get("content", "")[:500],
+        "summary": msg.get("content", "")[:800],
+        "full_content": msg.get("content", ""),
     }
 
     updates: dict[str, Any] = {
         "messages": messages,
         "claims_registry": registry,
+        "claim_authors": claim_authors,
+        "unresolved": unresolved,
         "specialist_outputs": outputs,
         "valid_evidence_ids": list(valid),
         "turn": state.get("turn", 0) + 1,

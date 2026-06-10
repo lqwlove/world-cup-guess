@@ -2,6 +2,14 @@
 
 from typing import Any
 
+from app.deliberation.debate_schedule import (
+    PHASE_BRAINSTORM,
+    PHASE_CROSS,
+    PHASE_OPENING,
+    PHASE_RECONCILE,
+    role_speech_count,
+)
+
 ROLE_DEBATE_GUIDE: dict[str, str] = {
     "data": (
         "你是【数据官】：用战绩、交锋、进球差说话。"
@@ -14,7 +22,7 @@ ROLE_DEBATE_GUIDE: dict[str, str] = {
     ),
     "market": (
         "你是【市场官】：对比 Polymarket 隐含概率与基本面。"
-        "若市场低估/高估某方，要直说「市场错了」并解释原因；给出你的概率区间。"
+        "若市场低估/高估某方，要直说「市场错了」并解释原因；给出你的概率判断。"
     ),
     "skeptic": (
         "你是【风控官/反对派】：专门找主流观点漏洞，提出冷门剧本。"
@@ -40,17 +48,20 @@ OPINION_RULES = """
 - 数据不足时，基于大赛经验做有依据的推断，但仍要给出倾向，不要骑墙。
 """
 
+BRAINSTORM_RULES = """
+【头脑风暴 / 情景推演 — 必须遵守】
+- 至少提出 1 个「非主流但说得通」的剧本（平局/冷门/小比分等），说明触发条件。
+- CHALLENGE 时必须写清：若主流观点错了，什么条件下冷门成立。
+- 允许大胆假设，但须标注依据类型：（数据 / 搜索 / 市场 / 大赛经验）。
+- 不要重复前人已说过的观点，要补充新角度或新证据。
+"""
+
 
 def count_role_speeches(messages: list[dict[str, Any]], role: str) -> int:
-    return sum(
-        1
-        for m in messages
-        if m.get("role") == role and m.get("msg_type") not in ("TOOL_CALL",)
-    )
+    return role_speech_count(messages, role)
 
 
 def is_cross_exam_round(role: str, messages: list[dict[str, Any]]) -> bool:
-    """Second and later speeches by the same role → cross-exam."""
     return count_role_speeches(messages, role) >= 1
 
 
@@ -59,6 +70,37 @@ def format_claims_for_prompt(registry: dict[str, str]) -> str:
         return "（尚无前人论点，你做开场判断。）"
     lines = [f"- {cid}：{snippet}" for cid, snippet in registry.items()]
     return "\n".join(lines)
+
+
+def phase_instruction(role: str, phase: str) -> str:
+    if phase == PHASE_OPENING:
+        return "【开场陈述】亮明立场，给出可引用的论据；有搜索/数据工具时务必调用。"
+    if phase == PHASE_CROSS:
+        if role == "skeptic":
+            return (
+                "【交叉质询】必须 CHALLENGE 至少一条前人论点（refs 必填 E-xxx），"
+                "提出具体冷门场景。"
+            )
+        if role in ("market", "handicap", "scoreline"):
+            return (
+                "【交叉质询】用 REBUTTAL 或 SUPPORT 回应前人（refs 必填），"
+                "给出不同的盘口/比分/市场判断。"
+            )
+        return "【交叉质询】回应质疑你的论点，或 CHALLENGE 最薄弱的一条观点。"
+    if phase == PHASE_BRAINSTORM:
+        guides = {
+            "data": "【情景推演】描述「主流剧本」（最可能赛果）及数据支撑。",
+            "skeptic": "【情景推演】描述「冷门剧本」（ upset / 平局）及触发条件，CHALLENGE 主流。",
+            "scoreline": "【情景推演】给出 2-3 个比分剧本，标注各自对应赛果走向。",
+            "market": "【情景推演】若冷门发生，市场定价哪里错了？给出修正观点。",
+        }
+        return guides.get(role, "【情景推演】提出一个与前人不同的剧本。")
+    if phase == PHASE_RECONCILE:
+        return (
+            "【清账轮】针对未决议题（unresolved）做 REBUTTAL 或 REVISE，"
+            "必须 refs 指向被质疑的 E-xxx；若坚持原观点也要补强论据。"
+        )
+    return cross_exam_instruction(role, [])
 
 
 def cross_exam_instruction(role: str, messages: list[dict[str, Any]]) -> str:

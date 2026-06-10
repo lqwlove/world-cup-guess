@@ -1,25 +1,27 @@
-const PHASES = ["Analysis", "FollowUp", "Summary"];
+const PHASES = ["Opening", "CrossExam", "Brainstorm", "Reconcile", "Summary"];
 
 const PHASE_LABELS: Record<string, string> = {
+  Opening: "开场陈述",
+  CrossExam: "交叉质询",
+  Brainstorm: "情景推演",
+  Reconcile: "清账",
+  Summary: "总结",
   Analysis: "分析中",
   FollowUp: "会后追问",
-  Summary: "总结",
-  Opening: "开场",
-  CrossExam: "交叉盘问",
   DeepDive: "深度讨论",
   PlaybookSplit: "玩法分拆",
   FinalVote: "表决",
-  Consensus: "共识",
+  Consensus: "形成共识",
 };
 
 export function PhaseProgressBar({ phase, round }: { phase: string; round: number }) {
   const idx = PHASES.indexOf(phase);
-  const activeIdx = idx >= 0 ? idx : 0;
+  const activeIdx = idx >= 0 ? idx : phase === "FollowUp" ? 0 : 0;
 
   return (
     <div className="mb-4 rounded-lg border border-pitch-700 bg-pitch-800 p-3">
       <div className="mb-2 flex justify-between text-xs text-slate-400">
-        <span>AI 战术室 · 调度工作流</span>
+        <span>AI 战术室 · 四段辩论流</span>
         <span>第 {round} 轮</span>
       </div>
       <div className="flex gap-1">

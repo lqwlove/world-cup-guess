@@ -161,16 +161,21 @@ def fallback_statement(
     refs_out: list[str] = []
 
     if role == "data":
+        probs = ctx.get("market_snapshot") or tool_result.get("probabilities") or {}
+        lean = "home"
+        if probs:
+            lean = max(probs, key=probs.get)
+        lean_label = home if lean == "home" else (away if lean == "away" else "平局")
         if facts:
             lines = [format_facts_for_prompt(facts)]
             text = (
-                f"我倾向【{home}不败】：数据面 {home} vs {away}，"
-                f"近况与交锋支持主队控场；客队在高压下进球效率存疑。\n{lines[0][:280]}"
+                f"我倾向【{lean_label}】：数据面 {home} vs {away}，"
+                f"量化信号指向{lean_label}方向；具体事实如下。\n{lines[0][:280]}"
             )
         else:
             text = (
-                f"我押【{home}小胜】：大赛经验与阵容厚度上 {home} 明显占优，"
-                f"{away} 首战更可能守势，但破密集防守效率决定是 1-0 还是 2-1。"
+                f"我倾向【{lean_label}】：大赛样本下 {home} 与 {away} 的对位数据"
+                f"更支持{lean_label}，但样本有限——欢迎风控从赛程压力角度 CHALLENGE。"
             )
         return text, evs, msg_type, refs_out
 

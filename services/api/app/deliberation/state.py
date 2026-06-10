@@ -28,6 +28,7 @@ class WarRoomState(TypedDict, total=False):
     final_artifact: Optional[dict[str, Any]]
     skeptic_ack: Optional[str]
     unresolved: list[str]
+    claim_authors: dict[str, str]
     error: Optional[str]
     persisted_count: int
     resume_to_supervisor: bool

@@ -289,6 +289,7 @@ def _initial_state(discussion: Discussion) -> dict[str, Any]:
         "specialist_outputs": {},
         "supervisor_trace": [],
         "unresolved": [],
+        "claim_authors": {},
         "awaiting_user": False,
         "persisted_count": 0,
         "resume_to_supervisor": False,

@@ -15,10 +15,12 @@ from app.deliberation.match_brief import (
     is_vacuous_content,
 )
 from app.deliberation.role_prompts import (
+    BRAINSTORM_RULES,
     OPINION_RULES,
     ROLE_DEBATE_GUIDE,
     cross_exam_instruction,
     format_claims_for_prompt,
+    phase_instruction,
 )
 from app.deliberation.state import WarRoomState
 from app.deliberation.activity import publish_tool_call
@@ -46,7 +48,7 @@ async def _mock_tool_run(role: str, match_id: str, outputs: dict[str, Any]) -> t
 
     if role in ("data", "squad"):
         trace.append({"tool": "sync_facts_from_football_data", "args": {}})
-        trace.append({"tool": "search_teams_latest_status", "args": {}})
+        trace.append({"tool": "search_for_role", "args": {}})
         trace.append({"tool": "get_data_facts" if role == "data" else "get_squad_facts", "args": {}})
         if role == "data":
             aggregated = await run_data_tools(match_id)
@@ -54,8 +56,10 @@ async def _mock_tool_run(role: str, match_id: str, outputs: dict[str, Any]) -> t
             aggregated = await run_squad_tools(match_id)
     elif role == "market":
         trace.append({"tool": "get_polymarket_snapshot", "args": {}})
+        trace.append({"tool": "search_for_role", "args": {}})
         aggregated = await run_market_tools(match_id)
     else:
+        trace.append({"tool": "search_for_role", "args": {}})
         trace.append({"tool": "get_peer_summaries", "args": {}})
         aggregated = {"peers": outputs}
 
@@ -79,8 +83,8 @@ async def _run_tool_loop(
         HumanMessage(
             content=(
                 "请调用工具获取本场分析所需数据，获取足够后停止调工具。"
-                "数据/阵容官：无事实时先 sync_facts_from_football_data，再 search_teams_latest_status 补充最新动态，"
-                "最后 get_data_facts 或 get_squad_facts。"
+                "优先 search_for_role 获取角色定制情报；"
+                "数据/阵容官无事实时先 sync_facts_from_football_data。"
             )
         ),
     ]
@@ -150,10 +154,14 @@ async def _finalize_message(
         aggregated = await run_market_tools(match_id)
 
     label = ROLE_LABELS.get(role, role)
-    messages = state.get("messages", [])
+    messages_hist = state.get("messages", [])
     registry = state.get("claims_registry", {})
     persona = ROLE_DEBATE_GUIDE.get(role, f"你是【{label}】，要有鲜明观点。")
-    exam = cross_exam_instruction(role, messages)
+    phase = state.get("phase", "Opening")
+    exam = phase_instruction(role, phase) if phase in (
+        "Opening", "CrossExam", "Brainstorm", "Reconcile",
+    ) else cross_exam_instruction(role, messages_hist)
+    unresolved = state.get("unresolved", [])
 
     prompt = f"""{persona}
 {format_match_brief(ctx)}
@@ -166,17 +174,20 @@ async def _finalize_message(
 【场上已有论点】
 {format_claims_for_prompt(registry)}
 
+【未决议题】{unresolved or "无"}
+
 【最近讨论】
-{json.dumps(messages[-8:], ensure_ascii=False)}
+{json.dumps(messages_hist[-16:], ensure_ascii=False)}
 
 {exam}
 
 {_AGENT_RULES}
 {OPINION_RULES}
+{BRAINSTORM_RULES}
 
 输出 JSON：
-{{"msg_type":"STATEMENT|CHALLENGE|REBUTTAL|SUPPORT","content":"简体中文 100-260字，观点鲜明","refs":["E-001"],"evidence_ids":[]}}
-说明：CHALLENGE/REBUTTAL/SUPPORT 时 refs 必填；STATEMENT 引用事实时 evidence_ids 必填。
+{{"msg_type":"STATEMENT|CHALLENGE|REBUTTAL|SUPPORT|REVISE","content":"简体中文 120-320字，观点鲜明","refs":["E-001"],"evidence_ids":[]}}
+说明：CHALLENGE/REBUTTAL/SUPPORT/REVISE 时 refs 必填；STATEMENT 引用事实时 evidence_ids 必填。
 """
     data = await call_llm_json(prompt)
     content = data.get("content", "")
@@ -189,7 +200,7 @@ async def _finalize_message(
     }
     if is_vacuous_content(content) or is_neutral_content(content):
         text, evs, msg_type, refs = fallback_statement(
-            role, ctx, aggregated, valid, messages, registry
+            role, ctx, aggregated, valid, messages_hist, registry
         )
         msg["content"] = text
         msg["msg_type"] = msg_type

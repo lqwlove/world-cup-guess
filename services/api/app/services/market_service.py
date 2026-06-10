@@ -225,6 +225,99 @@ def _parse_gamma_response(
         "volume": event.get("volume"),
         "volume24hr": event.get("volume24hr"),
         "markets": markets_meta,
+        "spread": _parse_spread_markets(markets),
+        "totals": _parse_totals_markets(markets),
+    }
+
+
+def _parse_spread_markets(markets: list[dict[str, Any]]) -> dict[str, Any] | None:
+    for market in markets:
+        blob = _market_blob(market)
+        if not any(k in blob for k in ("spread", "handicap", "-1.5", "+1.5", "cover")):
+            continue
+        yes_p = _yes_price(market)
+        if yes_p is None:
+            continue
+        line = "-1.5"
+        for token in ("-1.5", "-0.5", "+0.5", "+1.5"):
+            if token in blob:
+                line = token
+                break
+        return {
+            "line": line,
+            "favorite_cover_p": yes_p,
+            "underdog_cover_p": round(1 - yes_p, 4),
+            "question": market.get("question"),
+        }
+    return None
+
+
+def _parse_totals_markets(markets: list[dict[str, Any]]) -> dict[str, Any] | None:
+    over_p: float | None = None
+    under_p: float | None = None
+    line = "2.5"
+    for market in markets:
+        blob = _market_blob(market)
+        if not any(k in blob for k in ("over", "under", "total", "o 2.5", "u 2.5", "2.5")):
+            continue
+        yes_p = _yes_price(market)
+        if yes_p is None:
+            continue
+        if "over" in blob or blob.startswith("o "):
+            over_p = yes_p
+        elif "under" in blob or blob.startswith("u "):
+            under_p = yes_p
+        for token in ("2.5", "3.5", "1.5"):
+            if token in blob:
+                line = token
+    if over_p is not None or under_p is not None:
+        if over_p is None and under_p is not None:
+            over_p = round(1 - under_p, 4)
+        if under_p is None and over_p is not None:
+            under_p = round(1 - over_p, 4)
+        return {"line": line, "over_p": over_p, "under_p": under_p}
+    return None
+
+
+async def get_extended_market_data(session: AsyncSession, match_id: str) -> dict[str, Any]:
+    """Read spread/totals from latest snapshot raw or fetch live."""
+    mapping_result = await session.execute(
+        select(MarketMapping).where(
+            MarketMapping.match_id == match_id,
+            MarketMapping.platform == "polymarket",
+        )
+    )
+    mapping = mapping_result.scalar_one_or_none()
+    if not mapping:
+        return {}
+
+    snap_result = await session.execute(
+        select(MarketSnapshot)
+        .where(MarketSnapshot.match_id == match_id)
+        .order_by(desc(MarketSnapshot.captured_at))
+        .limit(1)
+    )
+    snapshot = snap_result.scalar_one_or_none()
+    if snapshot and snapshot.raw:
+        raw = snapshot.raw
+        return {
+            "probabilities": snapshot.probabilities,
+            "spread": raw.get("spread"),
+            "totals": raw.get("totals"),
+            "volume": raw.get("volume"),
+            "volume24hr": raw.get("volume24hr"),
+        }
+
+    parsed = await _fetch_event_probabilities(mapping)
+    if not parsed:
+        return {}
+    probs, meta = parsed
+    return {
+        "probabilities": probs,
+        "spread": meta.get("spread"),
+        "totals": meta.get("totals"),
+        "volume": meta.get("volume"),
+        "volume24hr": meta.get("volume24hr"),
     }
 
 

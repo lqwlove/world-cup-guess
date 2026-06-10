@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 
     max_rounds: int = 30
     # LangGraph 默认 recursion_limit=25；v2 工作流约 prep + 10轮×(supervisor+specialist+persist) + 总结 > 34 步
-    graph_recursion_limit: int = 80
+    graph_recursion_limit: int = 120
     deliberation_timeout_seconds: int = 2700
     prompt_version: str = "v1"
     graph_version: str = "v2"
